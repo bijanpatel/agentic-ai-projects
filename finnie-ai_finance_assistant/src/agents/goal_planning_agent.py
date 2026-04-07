@@ -109,7 +109,10 @@ def ask_goal_question(user_query: str) -> dict:
             "answer": "I could not find enough relevant goal-planning content in the current knowledge base to answer that confidently.",
             "sources": [],
             "retrieved_doc_count": 0,
-            "agent": "goal_planning"
+            "agent": "goal_planning",
+            "used_rag": True,
+            "used_api": False,
+            "fallback_used": False,
         }
 
     context = format_context(docs)
@@ -142,5 +145,8 @@ Keep the explanation educational, practical, and beginner-friendly.
         "answer": response.content,
         "sources": sources,
         "retrieved_doc_count": len(docs),
-        "agent": "goal_planning"
+        "agent": "goal_planning",
+        "used_rag": True,
+        "used_api": False,
+        "fallback_used": False,
     }

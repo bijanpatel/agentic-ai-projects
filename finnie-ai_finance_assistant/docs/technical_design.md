@@ -65,3 +65,15 @@ Responses avoid direct buy/sell recommendations and use disclaimers where releva
 - broader evaluation
 - AWS deployment
 - LLMOps / AgentOps metrics
+
+## 10. AWS Deployment Direction
+Planned production-oriented deployment target:
+- Dockerized application
+- Amazon ECR for image storage
+- Amazon ECS Fargate for runtime
+- Application Load Balancer for public access
+- AWS Secrets Manager for API keys
+- CloudWatch for logs and monitoring
+- Optional S3 for artifacts and evaluation logs
+
+This provides a practical path toward production-grade hosting and observability without overcomplicating the MVP.

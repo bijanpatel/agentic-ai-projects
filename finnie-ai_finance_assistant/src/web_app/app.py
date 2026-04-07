@@ -2,6 +2,7 @@ import os
 import sys
 import streamlit as st
 import pandas as pd
+from src.utils.evaluation import log_interaction
 
 # Add project root to Python path so `src.*` imports work when running Streamlit directly.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -61,6 +62,14 @@ def chat_tab():
 
         routed_agent = result.get("routed_agent", "unknown")
         agent_result = result.get("result", {})
+        log_interaction({
+            "user_query": user_query,
+            "agent": agent_result.get("agent", routed_agent),
+            "used_rag": agent_result.get("used_rag", False),
+            "used_api": agent_result.get("used_api", False),
+            "fallback_used": agent_result.get("fallback_used", False),
+            "retrieved_doc_count": agent_result.get("retrieved_doc_count", 0),
+        })
 
         st.markdown("### Answer")
         st.write(agent_result.get("answer", "No answer returned."))

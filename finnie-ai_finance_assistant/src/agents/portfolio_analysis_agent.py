@@ -74,5 +74,8 @@ Highlight:
         "question": user_query,
         "answer": response.content,
         "portfolio_metrics": metrics,
-        "agent": "portfolio_analysis"
+        "agent": "portfolio_analysis",
+        "used_rag": True,
+        "used_api": False,
+        "fallback_used": False,
     }

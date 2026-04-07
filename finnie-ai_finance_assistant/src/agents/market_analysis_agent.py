@@ -47,7 +47,10 @@ def ask_market_question(user_query: str, ticker: str) -> dict:
             "question": user_query,
             "answer": f"I could not retrieve live market data for {ticker} right now.",
             "market_data": snapshot,
-            "agent": "market_analysis"
+            "agent": "market_analysis",
+            "used_rag": True,
+            "used_api": False,
+            "fallback_used": False,
         }
 
     llm = ChatOpenAI(
@@ -75,5 +78,8 @@ Explain this in a simple, educational way for a beginner.
         "question": user_query,
         "answer": response.content,
         "market_data": snapshot,
-        "agent": "market_analysis"
+        "agent": "market_analysis",
+        "used_rag": True,
+        "used_api": False,
+        "fallback_used": False,
     }

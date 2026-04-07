@@ -109,7 +109,10 @@ def ask_tax_question(user_query: str) -> dict:
             "answer": "I could not find enough relevant tax education content in the current knowledge base to answer that confidently.",
             "sources": [],
             "retrieved_doc_count": 0,
-            "agent": "tax_education"
+            "agent": "tax_education",
+            "used_rag": True,
+            "used_api": False,
+            "fallback_used": False,
         }
 
     context = format_context(docs)
@@ -142,5 +145,8 @@ Keep the explanation educational and beginner-friendly.
         "answer": response.content,
         "sources": sources,
         "retrieved_doc_count": len(docs),
-        "agent": "tax_education"
+        "agent": "tax_education",
+        "used_rag": True,
+        "used_api": False,
+        "fallback_used": False,
     }

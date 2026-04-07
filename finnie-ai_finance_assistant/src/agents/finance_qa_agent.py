@@ -55,7 +55,10 @@ def ask_finance_question(user_query: str) -> dict:
             "answer": "I could not find enough relevant finance knowledge in the current knowledge base to answer that confidently.",
             "sources": [],
             "retrieved_doc_count": 0,
-            "agent": "finance_qa"
+            "agent": "finance_qa",
+            "used_rag": True,
+            "used_api": False,
+            "fallback_used": False,
         }
     context = format_context(docs)
     sources = extract_sources(docs)
@@ -87,5 +90,8 @@ If relevant, keep the explanation beginner-friendly and educational.
         "answer": response.content,
         "sources": sources,
         "retrieved_doc_count": len(docs),
-        "agent": "finance_qa"
+        "agent": "finance_qa",
+        "used_rag": True,
+        "used_api": False,
+        "fallback_used": False,
     }
