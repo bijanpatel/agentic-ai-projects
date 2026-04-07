@@ -1,30 +1,42 @@
 # AI Finance Assistant
 
 ## Overview
-A multi-agent AI finance assistant built for financial education, portfolio analysis, market insights, goal planning, news summarization, and tax education.
+AI Finance Assistant is a multi-agent financial education application built with OpenAI, LangGraph, Chroma, Streamlit, and yFinance. It helps users learn finance concepts, understand tax basics, explore financial goals, analyze sample portfolios, and view market data in a beginner-friendly way.
 
-## Tech Stack
-- OpenAI
-- LangGraph
-- ChromaDB
-- Streamlit
-- yFinance
+## Features
+- Multi-agent workflow using LangGraph
+- Finance Q&A Agent
+- Tax Education Agent
+- Goal Planning Agent
+- Portfolio Analysis Agent
+- Market Analysis Agent
+- RAG over a curated finance knowledge base
+- Streamlit-based UI with chat, portfolio, and market tabs
+- Portfolio visualizations and price-history charts
+
+## Architecture
+Main components:
+- `src/agents/` — specialized agents
+- `src/workflow/` — routing and LangGraph workflow
+- `src/rag/` — embeddings, vector store, retrieval
+- `src/utils/` — market and portfolio utilities
+- `src/web_app/` — Streamlit UI
+- `src/data/` — knowledge base, portfolios, evaluation datasets
 
 ## Project Structure
-(Add folder tree here)
-
-## Milestones
-1. Architecture and setup
-2. Datasets and knowledge base
-3. RAG pipeline
-4. Finance Q&A agent
-5. Multi-agent workflow
-6. Market data and portfolio analytics
-7. Streamlit app
-8. Testing and documentation
-
-## Setup
-1. Create a virtual environment
-2. Install requirements
-3. Add `.env`
-4. Run app
+```text
+ai_finance_assistant/
+├── src/
+│   ├── agents/
+│   ├── core/
+│   ├── data/
+│   ├── rag/
+│   ├── utils/
+│   ├── web_app/
+│   └── workflow/
+├── tests/
+├── docs/
+├── config.yaml
+├── requirements.txt
+├── README.md
+└── run.py
