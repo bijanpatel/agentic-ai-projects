@@ -1,0 +1,38 @@
+[
+  {
+    "user_id": "u1",
+    "name": "Demo Beginner",
+    "experience_level": "beginner",
+    "risk_tolerance": "moderate",
+    "investment_horizon_years": 10,
+    "financial_goals": ["retirement", "emergency fund"],
+    "preferred_explanation_style": "simple"
+  },
+  {
+    "user_id": "u2",
+    "name": "Tech Enthusiast",
+    "experience_level": "intermediate",
+    "risk_tolerance": "high",
+    "investment_horizon_years": 15,
+    "financial_goals": ["wealth growth"],
+    "preferred_explanation_style": "concise"
+  },
+  {
+    "user_id": "u3",
+    "name": "Income Planner",
+    "experience_level": "beginner",
+    "risk_tolerance": "low",
+    "investment_horizon_years": 5,
+    "financial_goals": ["capital preservation", "income"],
+    "preferred_explanation_style": "careful"
+  },
+  {
+    "user_id": "u4",
+    "name": "Retirement Builder",
+    "experience_level": "beginner",
+    "risk_tolerance": "moderate",
+    "investment_horizon_years": 20,
+    "financial_goals": ["retirement"],
+    "preferred_explanation_style": "educational"
+  }
+]

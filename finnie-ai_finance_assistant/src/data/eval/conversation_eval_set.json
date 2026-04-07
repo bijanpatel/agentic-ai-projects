@@ -1,0 +1,41 @@
+[
+  {
+    "conversation_id": "c1",
+    "turns": [
+      "I am a beginner investor.",
+      "My risk tolerance is low.",
+      "What should I learn first?"
+    ],
+    "expected_behaviors": [
+      "assistant remembers beginner status",
+      "assistant remembers low risk tolerance",
+      "assistant gives educational beginner-friendly response"
+    ]
+  },
+  {
+    "conversation_id": "c2",
+    "turns": [
+      "I want to save for a house in 5 years.",
+      "I can invest 900 dollars a month.",
+      "What kind of approach is usually considered?"
+    ],
+    "expected_behaviors": [
+      "assistant remembers goal type",
+      "assistant remembers timeline",
+      "assistant uses monthly contribution context"
+    ]
+  },
+  {
+    "conversation_id": "c3",
+    "turns": [
+      "Analyze my portfolio: AAPL 20, MSFT 15, NVDA 10.",
+      "Does it look diversified?",
+      "What does that mean for risk?"
+    ],
+    "expected_behaviors": [
+      "assistant remembers portfolio context",
+      "assistant identifies tech concentration",
+      "assistant explains concentration risk clearly"
+    ]
+  }
+]

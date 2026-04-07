@@ -1,0 +1,50 @@
+[
+  {
+    "input": "What is an ETF?",
+    "expected_route": "finance_qa"
+  },
+  {
+    "input": "Explain diversification in simple words",
+    "expected_route": "finance_qa"
+  },
+  {
+    "input": "Analyze my portfolio: AAPL 10, VOO 5, BND 7",
+    "expected_route": "portfolio_analysis"
+  },
+  {
+    "input": "Is my portfolio too concentrated in tech?",
+    "expected_route": "portfolio_analysis"
+  },
+  {
+    "input": "What is Apple stock price today?",
+    "expected_route": "market_analysis"
+  },
+  {
+    "input": "How did the S&P 500 do this week?",
+    "expected_route": "market_analysis"
+  },
+  {
+    "input": "Help me save for a house in 5 years",
+    "expected_route": "goal_planning"
+  },
+  {
+    "input": "How much should I save monthly for a $15000 emergency fund?",
+    "expected_route": "goal_planning"
+  },
+  {
+    "input": "Summarize today's market news for a beginner",
+    "expected_route": "news_synthesizer"
+  },
+  {
+    "input": "Why is the market falling today?",
+    "expected_route": "news_synthesizer"
+  },
+  {
+    "input": "What is a Roth IRA?",
+    "expected_route": "tax_education"
+  },
+  {
+    "input": "Explain capital gains tax in simple language",
+    "expected_route": "tax_education"
+  }
+]

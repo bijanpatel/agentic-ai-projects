@@ -1,0 +1,42 @@
+[
+  {
+    "scenario_id": "g1",
+    "user_id": "u1",
+    "goal_type": "emergency_fund",
+    "target_amount": 15000,
+    "current_saved": 3000,
+    "monthly_contribution": 500,
+    "timeline_months": 24,
+    "risk_appetite": "low"
+  },
+  {
+    "scenario_id": "g2",
+    "user_id": "u4",
+    "goal_type": "retirement",
+    "target_amount": 500000,
+    "current_saved": 75000,
+    "monthly_contribution": 1200,
+    "timeline_months": 240,
+    "risk_appetite": "moderate"
+  },
+  {
+    "scenario_id": "g3",
+    "user_id": "u1",
+    "goal_type": "house_down_payment",
+    "target_amount": 60000,
+    "current_saved": 10000,
+    "monthly_contribution": 900,
+    "timeline_months": 60,
+    "risk_appetite": "moderate"
+  },
+  {
+    "scenario_id": "g4",
+    "user_id": "u3",
+    "goal_type": "capital_preservation",
+    "target_amount": 30000,
+    "current_saved": 22000,
+    "monthly_contribution": 300,
+    "timeline_months": 36,
+    "risk_appetite": "low"
+  }
+]

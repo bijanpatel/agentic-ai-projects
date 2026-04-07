@@ -1,0 +1,15 @@
+langchain
+langgraph
+chromadb
+openai
+streamlit
+pandas
+plotly
+yfinance
+pytest
+python-dotenv
+pyyaml
+tiktoken
+numpy
+langchain-openai
+langchain-chroma

@@ -1,0 +1,17 @@
+portfolio_id,user_id,profile_name,ticker,asset_type,quantity,avg_buy_price,current_price,sector
+p1,u1,Beginner Balanced,AAPL,stock,10,185,210,Technology
+p1,u1,Beginner Balanced,VOO,etf,8,430,548,Index
+p1,u1,Beginner Balanced,BND,bond_etf,12,71,73,Fixed Income
+p1,u1,Beginner Balanced,VXUS,etf,6,58,62,International
+p2,u2,Tech Heavy,MSFT,stock,15,330,420,Technology
+p2,u2,Tech Heavy,NVDA,stock,12,480,890,Technology
+p2,u2,Tech Heavy,AAPL,stock,20,175,210,Technology
+p2,u2,Tech Heavy,QQQ,etf,5,370,470,Technology
+p3,u3,Conservative Income,BND,bond_etf,20,70,73,Fixed Income
+p3,u3,Conservative Income,SCHD,etf,10,72,80,Dividend Equity
+p3,u3,Conservative Income,VTI,etf,6,220,275,Broad Market
+p3,u3,Conservative Income,SGOV,etf,15,100,100,Short-Term Treasury
+p4,u4,Retirement Growth,VOO,etf,18,400,548,Index
+p4,u4,Retirement Growth,VXUS,etf,12,55,62,International
+p4,u4,Retirement Growth,AVUV,etf,8,72,88,Small Cap Value
+p4,u4,Retirement Growth,BND, bond_etf,5,70,73,Fixed Income

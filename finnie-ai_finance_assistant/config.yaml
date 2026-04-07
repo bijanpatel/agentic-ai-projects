@@ -1,0 +1,29 @@
+app:
+  name: AI Finance Assistant
+  environment: local
+  disclaimer: "This assistant is for financial education only and does not provide personalized financial advice."
+
+model:
+  provider: openai
+  model_name: gpt-4.1-mini
+  temperature: 0.2
+
+rag:
+  vector_store: chroma
+  collection_name: finance_kb
+  top_k: 4
+  chunk_size: 700
+  chunk_overlap: 100
+
+market_data:
+  provider: yfinance
+  cache_ttl_minutes: 30
+
+ui:
+  show_sources: true
+  show_disclaimer: true
+  app_title: "AI Finance Assistant"
+
+evaluation:
+  enable_response_logging: true
+  save_agent_route: true
