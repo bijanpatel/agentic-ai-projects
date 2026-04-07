@@ -2,7 +2,7 @@ import os
 import sys
 import streamlit as st
 import pandas as pd
-from src.utils.evaluation import log_interaction
+
 
 # Add project root to Python path so `src.*` imports work when running Streamlit directly.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -13,6 +13,7 @@ from src.agents.portfolio_analysis_agent import ask_portfolio_question
 from src.agents.market_analysis_agent import ask_market_question
 from src.utils.portfolio import load_portfolio_data
 from src.utils.market_data import get_price_history
+from src.utils.evaluation import log_interaction
 from src.web_app.charts import (
     portfolio_allocation_chart,
     sector_allocation_chart,
@@ -46,13 +47,17 @@ def chat_tab():
     - Finance Q&A Agent
     - Tax Education Agent
     - Goal Planning Agent
+
+    Using a Streamlit form allows Enter key submission.
     """
     st.subheader("Chat Assistant")
     st.write("Ask a finance education, tax education, or goal-planning question.")
 
-    user_query = st.text_input("Ask a question", key="chat_input")
+    with st.form(key="chat_form", clear_on_submit=False):
+        user_query = st.text_input("Ask a question", key="chat_input")
+        submitted = st.form_submit_button("Submit Chat Question")
 
-    if st.button("Submit Chat Question", key="chat_submit"):
+    if submitted:
         if not user_query.strip():
             st.warning("Please enter a question.")
             return
@@ -62,6 +67,8 @@ def chat_tab():
 
         routed_agent = result.get("routed_agent", "unknown")
         agent_result = result.get("result", {})
+
+        # Optional logging for evaluation / AgentOps
         log_interaction({
             "user_query": user_query,
             "agent": agent_result.get("agent", routed_agent),
