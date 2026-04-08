@@ -1,6 +1,9 @@
+import json
 from langchain_openai import ChatOpenAI
+
 from src.core.config import load_config
-from src.utils.portfolio import load_portfolio_data, calculate_portfolio_metrics
+from src.tools.finance_tools import calculate_portfolio_metrics_tool
+from src.rag.retriever import search_documents
 
 
 PORTFOLIO_ANALYSIS_SYSTEM_PROMPT = """
@@ -9,7 +12,8 @@ You are a beginner-friendly portfolio analysis assistant.
 Your role:
 - Explain portfolio composition clearly and simply.
 - Help the user understand diversification, concentration, and asset mix.
-- Use the provided portfolio metrics as the source of truth.
+- Use the provided portfolio metrics as the main source of truth.
+- Use retrieved educational context when relevant.
 
 Important rules:
 - Do NOT provide personalized investment advice.
@@ -18,18 +22,63 @@ Important rules:
 """
 
 
+def format_context(docs) -> str:
+    """
+    Convert retrieved educational documents into a prompt-ready text block.
+
+    Parameters:
+        docs (list):
+            Retrieved document objects.
+
+    Returns:
+        str:
+            Formatted text context.
+    """
+    if not docs:
+        return "No relevant educational context was retrieved."
+
+    parts = []
+    for i, doc in enumerate(docs, start=1):
+        parts.append(
+            f"[Document {i}]\n"
+            f"Title: {doc.metadata.get('title', 'Untitled')}\n"
+            f"Category: {doc.metadata.get('category', 'unknown')}\n"
+            f"Source: {doc.metadata.get('source', 'unknown')}\n"
+            f"Content: {doc.page_content}\n"
+        )
+    return "\n".join(parts)
+
+
+def extract_sources(docs) -> list[dict]:
+    """
+    Extract unique source references from retrieved documents.
+    """
+    seen = set()
+    sources = []
+
+    for doc in docs:
+        title = doc.metadata.get("title", "Untitled")
+        source = doc.metadata.get("source", "unknown")
+        key = (title, source)
+
+        if key not in seen:
+            seen.add(key)
+            sources.append({"title": title, "source": source})
+
+    return sources
+
+
 def ask_portfolio_question(user_query: str, portfolio_id: str) -> dict:
     """
-    Analyze a sample portfolio and explain the results in beginner-friendly language.
+    Analyze a sample portfolio using a tool-based metrics call plus optional
+    RAG grounding for educational concepts.
 
     Parameters:
         user_query (str):
-            The user's portfolio-related question.
-            Example: "Analyze my portfolio."
+            Portfolio-related user question.
 
         portfolio_id (str):
-            The portfolio identifier to analyze.
-            Example: "p1"
+            Portfolio identifier such as "p1".
 
     Returns:
         dict:
@@ -37,12 +86,24 @@ def ask_portfolio_question(user_query: str, portfolio_id: str) -> dict:
             - question
             - answer
             - portfolio_metrics
+            - sources
             - agent
+            - used_rag
+            - used_api
+            - fallback_used
     """
     config = load_config()
 
-    df = load_portfolio_data()
-    metrics = calculate_portfolio_metrics(df, portfolio_id)
+    metrics_json = calculate_portfolio_metrics_tool.invoke({"portfolio_id": portfolio_id})
+    metrics = json.loads(metrics_json)
+
+    # Retrieve educational support docs for better grounding.
+    docs = search_documents(
+        "diversification asset allocation concentration risk portfolio",
+        k=config["rag"]["top_k"]
+    )
+    context = format_context(docs)
+    sources = extract_sources(docs)
 
     llm = ChatOpenAI(
         api_key=config["openai_api_key"],
@@ -55,14 +116,19 @@ User question:
 {user_query}
 
 Portfolio metrics:
-{metrics}
+{json.dumps(metrics, indent=2)}
+
+Educational context:
+{context}
 
 Explain the portfolio in a simple, educational way for a beginner.
-Highlight:
+
+Please highlight:
 - total value
 - diversification observations
 - concentration observations
 - asset type mix
+- any educational risk considerations
 """
 
     response = llm.invoke([
@@ -74,6 +140,7 @@ Highlight:
         "question": user_query,
         "answer": response.content,
         "portfolio_metrics": metrics,
+        "sources": sources,
         "agent": "portfolio_analysis",
         "used_rag": True,
         "used_api": False,

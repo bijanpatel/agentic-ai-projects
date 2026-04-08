@@ -1,6 +1,9 @@
+import json
 from langchain_openai import ChatOpenAI
+
 from src.core.config import load_config
 from src.rag.retriever import search_documents
+from src.tools.finance_tools import get_goal_scenarios_tool
 
 
 GOAL_PLANNING_SYSTEM_PROMPT = """
@@ -8,13 +11,14 @@ You are a beginner-friendly financial goal planning assistant.
 
 Your role:
 - Help users think through savings and investing goals in an educational way.
-- Use the retrieved context as your primary source of truth.
+- Use retrieved educational context as a grounding source.
+- Use available goal scenario data when provided.
 - Explain concepts such as emergency funds, time horizon, risk tolerance, and consistent contributions.
 
 Important rules:
 - Do NOT provide personalized financial advice.
 - Do NOT promise investment outcomes.
-- If the retrieved context is limited, say so clearly.
+- If context is limited, say so clearly.
 - Keep the response practical, simple, and educational.
 
 Response style:
@@ -26,15 +30,7 @@ Response style:
 
 def format_context(docs) -> str:
     """
-    Convert retrieved documents into a text block for the LLM.
-
-    Parameters:
-        docs (list):
-            Retrieved document objects from the vector store.
-
-    Returns:
-        str:
-            Formatted context string for prompting the LLM.
+    Convert retrieved documents into a prompt-ready context block.
     """
     if not docs:
         return "No relevant context was retrieved."
@@ -54,14 +50,6 @@ def format_context(docs) -> str:
 def extract_sources(docs) -> list[dict]:
     """
     Extract unique source references from retrieved documents.
-
-    Parameters:
-        docs (list):
-            Retrieved document objects.
-
-    Returns:
-        list[dict]:
-            A list of unique source dictionaries.
     """
     seen = set()
     sources = []
@@ -78,23 +66,20 @@ def extract_sources(docs) -> list[dict]:
     return sources
 
 
-def ask_goal_question(user_query: str) -> dict:
+def ask_goal_question(user_query: str, user_id: str = "u1") -> dict:
     """
-    Answer a goal-planning question using retrieved finance knowledge base documents.
+    Answer a goal-planning question using both RAG and goal scenario tool data.
 
     Parameters:
         user_query (str):
-            The goal-planning question asked by the user.
-            Example: "How should I build an emergency fund?"
+            Goal-planning question.
+
+        user_id (str):
+            User identifier for scenario lookup.
 
     Returns:
         dict:
-            Structured response containing:
-            - question
-            - answer
-            - sources
-            - retrieved_doc_count
-            - agent
+            Structured goal-planning response.
     """
     config = load_config()
 
@@ -103,16 +88,19 @@ def ask_goal_question(user_query: str) -> dict:
         k=config["rag"]["top_k"]
     )
 
-    if not docs:
+    scenarios_json = get_goal_scenarios_tool.invoke({"user_id": user_id})
+    scenarios = json.loads(scenarios_json)
+
+    if not docs and not scenarios:
         return {
             "question": user_query,
-            "answer": "I could not find enough relevant goal-planning content in the current knowledge base to answer that confidently.",
+            "answer": "I could not find enough relevant goal-planning content or saved scenario data to answer that confidently.",
             "sources": [],
             "retrieved_doc_count": 0,
             "agent": "goal_planning",
-            "used_rag": True,
+            "used_rag": False,
             "used_api": False,
-            "fallback_used": False,
+            "fallback_used": True,
         }
 
     context = format_context(docs)
@@ -128,11 +116,15 @@ def ask_goal_question(user_query: str) -> dict:
 User question:
 {user_query}
 
-Retrieved context:
+Relevant educational context:
 {context}
 
-Please answer using the retrieved context only.
-Keep the explanation educational, practical, and beginner-friendly.
+Saved goal scenarios for this user:
+{json.dumps(scenarios, indent=2)}
+
+Answer in a beginner-friendly way.
+If scenarios are relevant, use them to make the explanation more concrete.
+Keep the response educational, not advisory.
 """
 
     response = llm.invoke([
@@ -145,8 +137,9 @@ Keep the explanation educational, practical, and beginner-friendly.
         "answer": response.content,
         "sources": sources,
         "retrieved_doc_count": len(docs),
+        "goal_scenarios_used": len(scenarios),
         "agent": "goal_planning",
-        "used_rag": True,
+        "used_rag": len(docs) > 0,
         "used_api": False,
         "fallback_used": False,
     }
