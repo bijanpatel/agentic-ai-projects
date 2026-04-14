@@ -1,4 +1,5 @@
 import re
+from src.agents.router_agent import llm_route_query
 
 
 def looks_like_ticker(text: str) -> bool:
@@ -7,43 +8,30 @@ def looks_like_ticker(text: str) -> bool:
 
     Parameters:
         text (str):
-            User query in lowercase or original form.
+            User query text.
 
     Returns:
         bool:
-            True if the text appears to contain a ticker-like token.
-
-    Note:
-        This is intentionally simple for MVP use.
-        Later this can be upgraded with a stronger parser.
+            True if the query appears to contain a ticker-like symbol.
     """
     pattern = r"\b[A-Z]{1,5}\b"
     return bool(re.search(pattern, text))
 
 
-def route_query(user_query: str) -> str:
+def rule_based_route(user_query: str) -> str | None:
     """
-    Route the user query to the appropriate agent.
+    Try rule-based routing first.
 
     Parameters:
         user_query (str):
-            The raw question asked by the user.
+            Raw user query.
 
     Returns:
-        str:
-            The name of the selected agent.
+        str | None:
+            Agent name if a strong rule match is found, otherwise None.
 
-    Supported routes:
-        - finance_qa
-        - tax_education
-        - goal_planning
-        - news_synthesizer
-        - market_analysis
-        - portfolio_analysis
-
-    Why this router matters:
-        It allows the user to use one main chat interface while the system
-        decides which specialized agent should respond.
+    Why return None?
+        None means the query was ambiguous and should be handed to the LLM router.
     """
     q = user_query.lower().strip()
 
@@ -59,18 +47,17 @@ def route_query(user_query: str) -> str:
 
     news_keywords = [
         "news", "headline", "headlines", "summarize news", "market news",
-        "what happened today", "today in markets", "market update",
-        "latest market news", "recent market news"
+        "what happened today", "market update", "latest market news", "recent market news"
     ]
 
     portfolio_keywords = [
         "portfolio", "holdings", "allocation", "diversified", "diversification",
-        "concentration", "my investments", "analyze my portfolio"
+        "concentration", "analyze my portfolio"
     ]
 
     market_keywords = [
         "stock price", "price today", "trading at", "market data", "ticker",
-        "what is happening with", "how is", "current price", "price of"
+        "current price", "price of", "what is happening with"
     ]
 
     if any(keyword in q for keyword in tax_keywords):
@@ -88,4 +75,27 @@ def route_query(user_query: str) -> str:
     if any(keyword in q for keyword in market_keywords) or looks_like_ticker(user_query):
         return "market_analysis"
 
-    return "finance_qa"
+    # No strong rule match found.
+    return None
+
+
+def route_query(user_query: str) -> str:
+    """
+    Hybrid router:
+    1. Try rule-based routing
+    2. If no strong match, use the LLM Router Agent
+
+    Parameters:
+        user_query (str):
+            User question.
+
+    Returns:
+        str:
+            Selected agent name.
+    """
+    rule_result = rule_based_route(user_query)
+
+    if rule_result is not None:
+        return rule_result
+
+    return llm_route_query(user_query)
