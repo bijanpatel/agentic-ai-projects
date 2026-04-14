@@ -6,6 +6,7 @@ from src.agents.market_analysis_agent import ask_market_question
 from src.agents.portfolio_analysis_agent import ask_portfolio_question
 from src.workflow.router import route_query
 from src.workflow.handoff import detect_handoff_need
+from src.agents.ticker_extractor_agent import extract_ticker_hybrid
 
 
 def extract_ticker_from_query(user_query: str) -> str:
@@ -88,8 +89,13 @@ def news_synthesizer_node(state: dict) -> dict:
 def market_analysis_node(state: dict) -> dict:
     """
     Market Analysis node.
+
+    This node uses hybrid ticker extraction:
+    1. alias dictionary lookup
+    2. LLM-based extraction
+    3. safe fallback
     """
-    ticker = extract_ticker_from_query(state["user_query"])
+    ticker = extract_ticker_hybrid(state["user_query"])
     result = ask_market_question(state["user_query"], ticker=ticker)
     state["result"] = result
     return state
@@ -169,7 +175,7 @@ def news_to_market_node(state: dict) -> dict:
     Handoff node: after news synthesis, add market analysis context.
     """
     primary = state.get("primary_result")
-    ticker = extract_ticker_from_query(state["user_query"])
+    ticker = extract_ticker_hybrid(state["user_query"])
     secondary = ask_market_question(state["user_query"], ticker=ticker)
 
     merged_answer = (

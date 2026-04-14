@@ -1,0 +1,23 @@
+{
+  "apple": "AAPL",
+  "microsoft": "MSFT",
+  "tesla": "TSLA",
+  "nvidia": "NVDA",
+  "amazon": "AMZN",
+  "google": "GOOGL",
+  "alphabet": "GOOGL",
+  "meta": "META",
+  "facebook": "META",
+  "netflix": "NFLX",
+  "voo": "VOO",
+  "spy": "SPY",
+  "qqq": "QQQ",
+  "vti": "VTI",
+  "vxus": "VXUS",
+  "bnd": "BND",
+  "schd": "SCHD",
+  "sgov": "SGOV",
+  "s&p 500": "VOO",
+  "s&p 500 etf": "VOO",
+  "nasdaq etf": "QQQ"
+}
