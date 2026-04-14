@@ -39,6 +39,8 @@ def decide_primary_node(state: WorkflowState) -> str:
         return "market_analysis"
     if routed_agent == "portfolio_analysis":
         return "portfolio_analysis"
+    if routed_agent == "guardrail":
+        return "guardrail"
 
     return "finance_qa"
 
@@ -79,6 +81,7 @@ def build_workflow():
     graph.add_node("news_to_market", news_to_market_node)
     graph.add_node("portfolio_to_finance", portfolio_to_finance_node)
     graph.add_node("goal_to_tax", goal_to_tax_node)
+    graph.add_node("guardrail", lambda state: state)
 
     graph.set_entry_point("router")
 
@@ -92,6 +95,7 @@ def build_workflow():
             "news_synthesizer": "news_synthesizer",
             "market_analysis": "market_analysis",
             "portfolio_analysis": "portfolio_analysis",
+            "guardrail": "guardrail",
         }
     )
 
@@ -117,5 +121,6 @@ def build_workflow():
     graph.add_edge("news_to_market", END)
     graph.add_edge("portfolio_to_finance", END)
     graph.add_edge("goal_to_tax", END)
+    graph.add_edge("guardrail", END)
 
     return graph.compile()

@@ -7,6 +7,8 @@ from src.agents.portfolio_analysis_agent import ask_portfolio_question
 from src.workflow.router import route_query
 from src.workflow.handoff import detect_handoff_need
 from src.agents.ticker_extractor_agent import extract_ticker_hybrid
+from src.workflow.guardrails import detect_guardrail_response
+from src.agents.portfolio_intake_agent import handle_portfolio_intake
 
 
 def extract_ticker_from_query(user_query: str) -> str:
@@ -37,11 +39,24 @@ def extract_ticker_from_query(user_query: str) -> str:
 def router_node(state: dict) -> dict:
     """
     Router node for the workflow.
+
+    This version first checks guardrails, then normal routing.
     """
     user_query = state["user_query"]
+
+    guardrail_result = detect_guardrail_response(user_query)
+    if guardrail_result is not None:
+        state["routed_agent"] = "guardrail"
+        state["result"] = guardrail_result
+        state["handoff_to"] = None
+        state["primary_result"] = None
+        return state
+
     state["routed_agent"] = route_query(user_query)
     state["handoff_to"] = None
     state["primary_result"] = None
+    state["needs_followup"] = False
+    state["followup_type"] = ""
     return state
 
 def finance_qa_node(state: dict) -> dict:
@@ -89,13 +104,21 @@ def news_synthesizer_node(state: dict) -> dict:
 def market_analysis_node(state: dict) -> dict:
     """
     Market Analysis node.
-
-    This node uses hybrid ticker extraction:
-    1. alias dictionary lookup
-    2. LLM-based extraction
-    3. safe fallback
     """
     ticker = extract_ticker_hybrid(state["user_query"])
+
+    if not ticker:
+        state["result"] = {
+            "question": state["user_query"],
+            "answer": "I can help with market analysis. Please mention a stock or ETF ticker such as AAPL, MSFT, or VOO.",
+            "sources": [],
+            "agent": "market_analysis",
+            "used_rag": False,
+            "used_api": False,
+            "fallback_used": True,
+        }
+        return state
+
     result = ask_market_question(state["user_query"], ticker=ticker)
     state["result"] = result
     return state
@@ -103,7 +126,26 @@ def market_analysis_node(state: dict) -> dict:
 def portfolio_analysis_node(state: dict) -> dict:
     """
     Portfolio Analysis node.
+
+    If portfolio holdings are not yet available in state, this node first
+    triggers portfolio intake behavior through chat.
     """
+    portfolio_context = state.get("portfolio_context", {})
+
+    if not portfolio_context.get("holdings"):
+        intake_result = handle_portfolio_intake(
+            state["user_query"],
+            portfolio_context=portfolio_context
+        )
+
+        state["result"] = intake_result
+        state["portfolio_context"] = intake_result.get("portfolio_context", {})
+        state["needs_followup"] = intake_result.get("needs_followup", False)
+        state["followup_type"] = intake_result.get("followup_type", "")
+        return state
+
+    # For now, once holdings exist, still use sample portfolio p1 as analysis placeholder.
+    # In the next refinement, this will be upgraded to analyze the user-provided holdings directly.
     result = ask_portfolio_question(
         user_query=state["user_query"],
         portfolio_id="p1"

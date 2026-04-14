@@ -4,18 +4,62 @@ from src.agents.router_agent import llm_route_query
 
 def looks_like_ticker(text: str) -> bool:
     """
-    Very simple ticker-pattern check.
+    Check whether the query contains a likely stock/ETF ticker symbol.
+
+    Rules:
+    - 2 to 5 uppercase alphabetic characters
+    - reject common greetings and common English short words
+    - this only detects ticker-like tokens, not market intent by itself
+    """
+    blocked_words = {
+        "HI", "HEY", "HELLO", "WHO", "WHAT", "WITH", "NEWS", "ABOUT",
+        "TODAY", "PRICE", "HOW", "ARE", "YOU", "THE", "AND", "FOR",
+        "THIS", "THAT", "GOOD", "MORNING", "EVENING", "AFTERNOON"
+    }
+
+    tokens = text.upper().split()
+
+    for token in tokens:
+        cleaned = token.strip(",.?!:;()[]{}\"'")
+        if 2 <= len(cleaned) <= 5 and cleaned.isalpha():
+            if cleaned not in blocked_words:
+                return True
+
+    return False
+
+
+def has_clear_market_intent(user_query: str) -> bool:
+    """
+    Check whether the query clearly asks for market/ticker-related information.
 
     Parameters:
-        text (str):
-            User query text.
+        user_query (str):
+            Raw user query.
 
     Returns:
         bool:
-            True if the query appears to contain a ticker-like symbol.
+            True if the query clearly sounds market-related.
     """
-    pattern = r"\b[A-Z]{1,5}\b"
-    return bool(re.search(pattern, text))
+    q = user_query.lower().strip()
+
+    market_keywords = [
+        "stock price",
+        "price today",
+        "trading at",
+        "market data",
+        "ticker",
+        "current price",
+        "price of",
+        "what is happening with",
+        "how is",
+        "how's",
+        "share price",
+        "stock doing",
+        "market performance",
+        "latest price",
+    ]
+
+    return any(keyword in q for keyword in market_keywords)
 
 
 def rule_based_route(user_query: str) -> str | None:
@@ -55,11 +99,7 @@ def rule_based_route(user_query: str) -> str | None:
         "concentration", "analyze my portfolio"
     ]
 
-    market_keywords = [
-        "stock price", "price today", "trading at", "market data", "ticker",
-        "current price", "price of", "what is happening with"
-    ]
-
+    # Strong deterministic routes first
     if any(keyword in q for keyword in tax_keywords):
         return "tax_education"
 
@@ -72,8 +112,14 @@ def rule_based_route(user_query: str) -> str | None:
     if any(keyword in q for keyword in portfolio_keywords):
         return "portfolio_analysis"
 
-    if any(keyword in q for keyword in market_keywords) or looks_like_ticker(user_query):
+    # Route to market only when the query clearly sounds market-related.
+    if has_clear_market_intent(user_query):
         return "market_analysis"
+
+    # Ticker-like token alone is NOT enough anymore.
+    # Let ambiguous cases go to the LLM router instead.
+    if looks_like_ticker(user_query):
+        return None
 
     # No strong rule match found.
     return None

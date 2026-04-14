@@ -3,7 +3,6 @@ import sys
 import streamlit as st
 import pandas as pd
 
-
 # Add project root to Python path so `src.*` imports work when running Streamlit directly.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -21,84 +20,206 @@ from src.web_app.charts import (
 )
 
 
-def render_sources(sources: list):
+def render_starter_prompts():
     """
-    Render source references in the UI.
+    Render compact starter prompts when the chat is empty.
 
-    Parameters:
-        sources (list):
-            A list of source dictionaries, usually containing:
-            - title
-            - source
+    Returns:
+        str | None:
+            Selected starter prompt if clicked, otherwise None.
     """
-    if not sources:
+    c1, c2, c3, c4 = st.columns(4)
+
+    selected_prompt = None
+
+    with c1:
+        if st.button("What is an ETF?", use_container_width=True):
+            selected_prompt = "What is an ETF?"
+
+    with c2:
+        if st.button("Roth IRA basics", use_container_width=True):
+            selected_prompt = "What is a Roth IRA?"
+
+    with c3:
+        if st.button("Analyze my portfolio", use_container_width=True):
+            selected_prompt = "Analyze my portfolio"
+
+    with c4:
+        if st.button("Market news summary", use_container_width=True):
+            selected_prompt = "Summarize recent market news for a beginner."
+
+    return selected_prompt
+
+
+def render_response_details_icon(metadata: dict):
+    """
+    Render a tiny inline info icon with a hover tooltip.
+    This avoids Streamlit popover/button chrome and avoids broken HTML tags.
+    """
+    if not metadata:
         return
 
-    st.markdown("**Sources**")
-    for source in sources:
-        st.write(f"- {source['title']} ({source['source']})")
+    agent = metadata.get("routed_agent", "unknown")
+    used_rag = metadata.get("used_rag", False)
+    used_api = metadata.get("used_api", False)
+    fallback_used = metadata.get("fallback_used", False)
+    needs_followup = metadata.get("needs_followup", False)
+    followup_type = metadata.get("followup_type", "")
+    sources = metadata.get("sources", [])
+
+    lines = [
+        f"Agent: {agent}",
+        f"Used RAG: {used_rag}",
+        f"Used API: {used_api}",
+        f"Fallback: {fallback_used}",
+    ]
+
+    if needs_followup:
+        lines.append(f"Needs Follow-up: {needs_followup}")
+        lines.append(f"Follow-up Type: {followup_type}")
+
+    if sources:
+        lines.append("Sources:")
+        for src in sources[:4]:
+            lines.append(f"- {src['title']} ({src['source']})")
+
+    tooltip_text = "&#10;".join(
+        line.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+        for line in lines
+    )
+
+    st.markdown(
+        f"""
+        <div style="display:flex; justify-content:flex-end; align-items:flex-start; margin-top:0.15rem;">
+            <span title="{tooltip_text}"
+                  style="cursor:help; color:#6b7280; font-size:1rem; line-height:1;">
+                ⓘ
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+def render_sticky_header(title: str):
+    """
+    Render a sticky page header.
+    """
+    st.markdown(
+        f"""
+        <style>
+        .sticky-app-header {{
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            background: white;
+            padding: 1rem 0 0.75rem 0;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #f1f5f9;
+        }}
+
+        .sticky-app-title {{
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #111827;
+            margin: 0;
+        }}
+        </style>
+
+        <div class="sticky-app-header">
+            <div class="sticky-app-title">{title}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def chat_tab():
     """
-    Render the Chat Assistant tab.
-
-    This tab uses the LangGraph workflow to route questions to:
-    - Finance Q&A Agent
-    - Tax Education Agent
-    - Goal Planning Agent
-
-    Using a Streamlit form allows Enter key submission.
+    Render the main assistant chat view.
     """
-    st.subheader("Chat Assistant")
-    st.write("Ask a beginner-friendly finance, tax, goal-planning, or market news question.")
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
 
-    with st.form(key="chat_form", clear_on_submit=False):
-        user_query = st.text_input("Ask a question", key="chat_input")
-        submitted = st.form_submit_button("Submit Chat Question")
+    starter_prompt = None
+    if not st.session_state.chat_messages:
+        st.caption("Try one")
+        starter_prompt = render_starter_prompts()
+        st.divider()
 
-    if submitted:
-        if not user_query.strip():
-            st.warning("Please enter a question.")
-            return
+    for message in st.session_state.chat_messages:
+        with st.chat_message(message["role"]):
+            if message["role"] == "assistant":
+                text_col, icon_col = st.columns([24, 1], vertical_alignment="top")
+                with text_col:
+                    st.write(message["content"])
+                with icon_col:
+                    metadata = message.get("metadata", {})
+                    if metadata:
+                        render_response_details_icon(metadata)
+            else:
+                st.write(message["content"])
+
+    user_query = st.chat_input(
+        "Ask anything about finance, tax, planning, portfolios, markets, or news"
+    )
+
+    final_query = user_query or starter_prompt
+
+    if final_query:
+        st.session_state.chat_messages.append({
+            "role": "user",
+            "content": final_query,
+        })
 
         app = build_workflow()
-        result = app.invoke({"user_query": user_query})
+        result = app.invoke({
+            "user_query": final_query,
+            "messages": st.session_state.chat_messages,
+        })
 
         routed_agent = result.get("routed_agent", "unknown")
         agent_result = result.get("result", {})
 
-        # Optional logging for evaluation / AgentOps
+        answer = agent_result.get("answer", "No answer returned.")
+        sources = agent_result.get("sources", [])
+
+        assistant_metadata = {
+            "routed_agent": routed_agent,
+            "used_rag": agent_result.get("used_rag", False),
+            "used_api": agent_result.get("used_api", False),
+            "fallback_used": agent_result.get("fallback_used", False),
+            "needs_followup": result.get("needs_followup", False),
+            "followup_type": result.get("followup_type", ""),
+            "sources": sources,
+        }
+
+        st.session_state.chat_messages.append({
+            "role": "assistant",
+            "content": answer,
+            "metadata": assistant_metadata,
+        })
+
         log_interaction({
-            "user_query": user_query,
+            "user_query": final_query,
             "agent": agent_result.get("agent", routed_agent),
             "used_rag": agent_result.get("used_rag", False),
             "used_api": agent_result.get("used_api", False),
             "fallback_used": agent_result.get("fallback_used", False),
             "retrieved_doc_count": agent_result.get("retrieved_doc_count", 0),
+            "needs_followup": result.get("needs_followup", False),
+            "followup_type": result.get("followup_type", ""),
         })
 
-        st.markdown("### Answer")
-        st.write(agent_result.get("answer", "No answer returned."))
-
-        st.markdown("### Routed Agent")
-        st.write(routed_agent)
-
-        render_sources(agent_result.get("sources", []))
+        st.rerun()
 
 
 def portfolio_tab():
     """
-    Render the Portfolio Analyzer tab.
-
-    This tab:
-    - loads sample portfolios
-    - lets the user choose one
-    - runs the portfolio analysis agent
-    - displays explanation + charts
+    Render the Portfolio Explorer view.
     """
-    st.subheader("Portfolio Analyzer")
-    st.write("Select a sample portfolio to analyze.")
+    st.subheader("Portfolio Explorer")
+    st.caption("Choose a sample portfolio and review a beginner-friendly explanation.")
 
     df = load_portfolio_data()
 
@@ -116,7 +237,7 @@ def portfolio_tab():
     selected_label = st.selectbox(
         "Choose a portfolio",
         options=list(portfolio_map.keys()),
-        key="portfolio_select"
+        key="portfolio_select",
     )
 
     if st.button("Analyze Portfolio", key="portfolio_submit"):
@@ -124,7 +245,7 @@ def portfolio_tab():
 
         result = ask_portfolio_question(
             user_query="Analyze this portfolio for a beginner investor.",
-            portfolio_id=portfolio_id
+            portfolio_id=portfolio_id,
         )
 
         st.markdown("### Portfolio Explanation")
@@ -132,7 +253,6 @@ def portfolio_tab():
 
         metrics = result["portfolio_metrics"]
 
-        # Convert values to float in case they came back as strings from JSON/tool output.
         total_value = float(metrics["total_value"])
         total_cost_basis = float(metrics["total_cost_basis"])
         unrealized_gain_loss = float(metrics["unrealized_gain_loss"])
@@ -157,16 +277,10 @@ def portfolio_tab():
 
 def market_tab():
     """
-    Render the Market Overview tab.
-
-    This tab:
-    - accepts a ticker symbol
-    - runs the market analysis agent
-    - fetches price history
-    - shows explanation + chart + raw snapshot data
+    Render the Market Explorer view.
     """
-    st.subheader("Market Overview")
-    st.write("Enter a ticker symbol to get a simple market explanation.")
+    st.subheader("Market Explorer")
+    st.caption("Enter a ticker to review a simple market explanation and recent price trend.")
 
     ticker = st.text_input("Enter ticker symbol", value="AAPL", key="market_ticker")
 
@@ -179,7 +293,7 @@ def market_tab():
 
         result = ask_market_question(
             user_query=f"What is happening with {ticker} right now?",
-            ticker=ticker
+            ticker=ticker,
         )
 
         st.markdown("### Market Explanation")
@@ -201,35 +315,43 @@ def market_tab():
 
 
 def main():
-    """
-    Main entry point for the Streamlit app.
-
-    This function:
-    - loads configuration
-    - sets page layout
-    - renders tabs
-    """
     config = load_config()
 
     st.set_page_config(
         page_title=config["ui"]["app_title"],
-        layout="wide"
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
 
-    st.title(config["ui"]["app_title"])
+    with st.sidebar:
+        st.markdown("## Tools")
 
-    if config["ui"]["show_disclaimer"]:
-        st.info(config["app"]["disclaimer"])
+        selected_tool = st.radio(
+            label="Choose a tool",
+            options=[
+                "Assistant",
+                "Portfolio Explorer",
+                "Market Explorer",
+            ],
+            index=0,
+            label_visibility="collapsed",
+        )
 
-    tab1, tab2, tab3 = st.tabs(["Chat", "Portfolio", "Market"])
+        st.divider()
+        st.caption("For financial education only")
+        st.caption("Not personalized financial advice")
 
-    with tab1:
+        if st.button("Clear chat", use_container_width=True):
+            st.session_state.chat_messages = []
+            st.rerun()
+
+    render_sticky_header(config["ui"]["app_title"])
+
+    if selected_tool == "Assistant":
         chat_tab()
-
-    with tab2:
+    elif selected_tool == "Portfolio Explorer":
         portfolio_tab()
-
-    with tab3:
+    elif selected_tool == "Market Explorer":
         market_tab()
 
 

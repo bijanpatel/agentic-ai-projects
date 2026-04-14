@@ -138,7 +138,7 @@ def extract_ticker_with_llm(user_query: str) -> str | None:
     return None
 
 
-def extract_ticker_hybrid(user_query: str, default_ticker: str = "AAPL") -> str:
+def extract_ticker_hybrid(user_query: str, default_ticker: str | None = None) -> str | None:
     """
     Hybrid ticker extraction strategy.
 
