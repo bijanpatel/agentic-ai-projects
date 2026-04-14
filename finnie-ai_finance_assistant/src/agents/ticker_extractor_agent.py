@@ -83,11 +83,16 @@ def looks_like_valid_ticker(ticker: str) -> bool:
     Returns:
         bool:
             True if the ticker looks valid for our MVP use.
-
-    Validation rule:
-        - 1 to 5 uppercase alphabetic characters
     """
     if not ticker:
+        return False
+
+    blocked_words = {
+        "ABOUT", "WHAT", "WITH", "PRICE", "TODAY", "MARKET",
+        "NEWS", "FOR", "THE", "AND", "THIS", "THAT"
+    }
+
+    if ticker in blocked_words:
         return False
 
     return bool(re.fullmatch(r"[A-Z]{1,5}", ticker))
