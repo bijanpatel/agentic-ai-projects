@@ -70,34 +70,13 @@ def extract_sources(docs) -> list[dict]:
 
 def ask_portfolio_question(user_query: str, portfolio_id: str) -> dict:
     """
-    Analyze a sample portfolio using a tool-based metrics call plus optional
-    RAG grounding for educational concepts.
-
-    Parameters:
-        user_query (str):
-            Portfolio-related user question.
-
-        portfolio_id (str):
-            Portfolio identifier such as "p1".
-
-    Returns:
-        dict:
-            Structured response containing:
-            - question
-            - answer
-            - portfolio_metrics
-            - sources
-            - agent
-            - used_rag
-            - used_api
-            - fallback_used
+    Analyze a sample portfolio using a tool-based metrics call plus educational RAG grounding.
     """
     config = load_config()
 
     metrics_json = calculate_portfolio_metrics_tool.invoke({"portfolio_id": portfolio_id})
     metrics = json.loads(metrics_json)
 
-    # Retrieve educational support docs for better grounding.
     docs = search_documents(
         "diversification asset allocation concentration risk portfolio",
         k=config["rag"]["top_k"]
@@ -128,7 +107,7 @@ Please highlight:
 - diversification observations
 - concentration observations
 - asset type mix
-- any educational risk considerations
+- educational risk considerations
 """
 
     response = llm.invoke([

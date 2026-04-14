@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from langchain.tools import tool
 
 from src.utils.market_data import get_ticker_snapshot, get_price_history
@@ -18,18 +19,10 @@ def get_market_snapshot_tool(ticker: str) -> str:
 
     Returns:
         str:
-            JSON string containing market snapshot fields such as:
-            - ticker
-            - short_name
-            - current_price
-            - currency
-            - day_high
-            - day_low
-            - previous_close
+            JSON string containing market snapshot data.
 
-    Why return JSON string?
-        LangChain tools commonly return string-friendly outputs that are easy
-        to inject into prompts or agent tool traces.
+    Why JSON string?
+        Tools are often easiest to pass into prompts and logs as serialized text.
     """
     snapshot = get_ticker_snapshot(ticker)
     return json.dumps(snapshot, default=str)
@@ -45,20 +38,14 @@ def get_price_history_tool(ticker: str, period: str = "1mo", interval: str = "1d
             Stock or ETF ticker symbol.
 
         period (str):
-            Time range to fetch.
-            Example values: "5d", "1mo", "3mo", "6mo", "1y"
+            Time period to fetch, such as "1mo" or "3mo".
 
         interval (str):
-            Frequency of historical data.
-            Example values: "1d", "1wk", "1mo"
+            Data interval such as "1d" or "1wk".
 
     Returns:
         str:
-            JSON string containing historical price rows.
-
-    Notes:
-        This can become large, so in real production systems you may want to
-        summarize or truncate before sending to the LLM.
+            JSON string of historical price rows.
     """
     history_df = get_price_history(ticker, period=period, interval=interval)
     return history_df.to_json(orient="records", date_format="iso")
@@ -71,21 +58,11 @@ def calculate_portfolio_metrics_tool(portfolio_id: str) -> str:
 
     Parameters:
         portfolio_id (str):
-            Portfolio identifier such as "p1", "p2", "p3".
+            Portfolio identifier, such as "p1" or "p2".
 
     Returns:
         str:
-            JSON string containing:
-            - total value
-            - cost basis
-            - unrealized gain/loss
-            - holdings
-            - sector allocation
-            - asset type allocation
-
-    Why this tool matters:
-        It gives the Portfolio Analysis Agent a structured way to access
-        computed portfolio intelligence rather than calling the utility directly.
+            JSON string containing portfolio metrics.
     """
     df = load_portfolio_data()
     metrics = calculate_portfolio_metrics(df, portfolio_id)
@@ -95,19 +72,47 @@ def calculate_portfolio_metrics_tool(portfolio_id: str) -> str:
 @tool
 def get_goal_scenarios_tool(user_id: str) -> str:
     """
-    Retrieve saved goal-planning scenarios for a user.
+    Retrieve goal-planning scenarios for a user.
 
     Parameters:
         user_id (str):
-            User identifier such as "u1", "u2", "u3".
+            User identifier such as "u1".
 
     Returns:
         str:
-            JSON string containing matching goal scenarios.
-
-    Why this tool matters:
-        It allows the Goal Planning Agent to use structured scenario data
-        in a more agentic and observable way.
+            JSON string containing the user's goal scenarios.
     """
     scenarios = get_goal_scenario_by_user(user_id)
     return json.dumps(scenarios, default=str)
+
+
+@tool
+def get_sample_finance_news_tool(category: str = "all") -> str:
+    """
+    Retrieve sample finance news items from the local news dataset.
+
+    Parameters:
+        category (str):
+            Optional category filter such as:
+            - "all"
+            - "markets"
+            - "equities"
+            - "fixed_income"
+
+    Returns:
+        str:
+            JSON string containing matching news items.
+
+    Why this tool matters:
+        It gives the News Synthesizer Agent a structured news source without
+        requiring live web ingestion in this milestone.
+    """
+    path = Path("src/data/news/sample_finance_news.json")
+
+    with path.open("r", encoding="utf-8") as f:
+        news_items = json.load(f)
+
+    if category != "all":
+        news_items = [item for item in news_items if item.get("category") == category]
+
+    return json.dumps(news_items, default=str)

@@ -69,17 +69,6 @@ def extract_sources(docs) -> list[dict]:
 def ask_goal_question(user_query: str, user_id: str = "u1") -> dict:
     """
     Answer a goal-planning question using both RAG and goal scenario tool data.
-
-    Parameters:
-        user_query (str):
-            Goal-planning question.
-
-        user_id (str):
-            User identifier for scenario lookup.
-
-    Returns:
-        dict:
-            Structured goal-planning response.
     """
     config = load_config()
 

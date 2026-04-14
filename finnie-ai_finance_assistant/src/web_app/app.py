@@ -51,7 +51,7 @@ def chat_tab():
     Using a Streamlit form allows Enter key submission.
     """
     st.subheader("Chat Assistant")
-    st.write("Ask a finance education, tax education, or goal-planning question.")
+    st.write("Ask a beginner-friendly finance, tax, goal-planning, or market news question.")
 
     with st.form(key="chat_form", clear_on_submit=False):
         user_query = st.text_input("Ask a question", key="chat_input")
@@ -132,10 +132,15 @@ def portfolio_tab():
 
         metrics = result["portfolio_metrics"]
 
+        # Convert values to float in case they came back as strings from JSON/tool output.
+        total_value = float(metrics["total_value"])
+        total_cost_basis = float(metrics["total_cost_basis"])
+        unrealized_gain_loss = float(metrics["unrealized_gain_loss"])
+
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Value", f"${metrics['total_value']:,.2f}")
-        col2.metric("Total Cost Basis", f"${metrics['total_cost_basis']:,.2f}")
-        col3.metric("Unrealized Gain/Loss", f"${metrics['unrealized_gain_loss']:,.2f}")
+        col1.metric("Total Value", f"${total_value:,.2f}")
+        col2.metric("Total Cost Basis", f"${total_cost_basis:,.2f}")
+        col3.metric("Unrealized Gain/Loss", f"${unrealized_gain_loss:,.2f}")
 
         st.markdown("### Allocation by Holding")
         fig1 = portfolio_allocation_chart(metrics["holdings"])

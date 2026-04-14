@@ -1,6 +1,7 @@
 from src.agents.finance_qa_agent import ask_finance_question
 from src.agents.tax_education_agent import ask_tax_question
 from src.agents.goal_planning_agent import ask_goal_question
+from src.agents.news_synthesizer_agent import ask_news_question
 from src.workflow.router import route_query
 
 
@@ -69,4 +70,19 @@ def goal_planning_node(state: dict) -> dict:
             Updated state with 'result' from the goal planning agent.
     """
     state["result"] = ask_goal_question(state["user_query"])
+    return state
+
+def news_synthesizer_node(state: dict) -> dict:
+    """
+    News Synthesizer node.
+
+    Parameters:
+        state (dict):
+            Shared workflow state containing 'user_query'.
+
+    Returns:
+        dict:
+            Updated state with 'result' from the news synthesizer agent.
+    """
+    state["result"] = ask_news_question(state["user_query"])
     return state

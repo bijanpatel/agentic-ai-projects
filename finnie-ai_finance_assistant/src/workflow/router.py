@@ -10,17 +10,15 @@ def route_query(user_query: str) -> str:
         str:
             The name of the selected agent.
 
-    Routing logic:
-        - tax_education:
-            For tax-related terms such as Roth IRA, 401(k), capital gains, taxable account.
-        - goal_planning:
-            For goal-oriented terms such as emergency fund, save, house, retirement, time horizon.
-        - finance_qa:
-            Default route for general finance education questions.
+    Current supported routes:
+        - finance_qa
+        - tax_education
+        - goal_planning
+        - news_synthesizer
 
     Notes:
-        This is a simple rule-based router for the MVP.
-        Later, we can replace or enhance it with an LLM-based intent classifier.
+        This is still a rule-based router for the MVP.
+        It can be upgraded later into a model-based router.
     """
     q = user_query.lower().strip()
 
@@ -34,10 +32,20 @@ def route_query(user_query: str) -> str:
         "retirement", "time horizon", "monthly contribution", "risk tolerance"
     ]
 
+    news_keywords = [
+        "news", "headline", "headlines", "summarize news", "market news",
+        "what happened today", "today in markets", "what's happening in the market",
+        "what is happening in the market", "market update", "latest market news",
+        "recent market news", "summarize recent market news"
+    ]
+
     if any(keyword in q for keyword in tax_keywords):
         return "tax_education"
 
     if any(keyword in q for keyword in goal_keywords):
         return "goal_planning"
+
+    if any(keyword in q for keyword in news_keywords):
+        return "news_synthesizer"
 
     return "finance_qa"

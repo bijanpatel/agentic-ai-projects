@@ -6,6 +6,7 @@ from src.workflow.nodes import (
     finance_qa_node,
     tax_education_node,
     goal_planning_node,
+    news_synthesizer_node,
 )
 
 
@@ -48,6 +49,9 @@ def decide_next_node(state: WorkflowState) -> str:
     if routed_agent == "goal_planning":
         return "goal_planning"
 
+    if routed_agent == "news_synthesizer":
+        return "news_synthesizer"
+
     return "finance_qa"
 
 
@@ -67,6 +71,7 @@ def build_workflow():
     graph.add_node("finance_qa", finance_qa_node)
     graph.add_node("tax_education", tax_education_node)
     graph.add_node("goal_planning", goal_planning_node)
+    graph.add_node("news_synthesizer", news_synthesizer_node)
 
     graph.set_entry_point("router")
 
@@ -77,11 +82,13 @@ def build_workflow():
             "finance_qa": "finance_qa",
             "tax_education": "tax_education",
             "goal_planning": "goal_planning",
+            "news_synthesizer": "news_synthesizer",
         }
     )
 
     graph.add_edge("finance_qa", END)
     graph.add_edge("tax_education", END)
     graph.add_edge("goal_planning", END)
+    graph.add_edge("news_synthesizer", END)
 
     return graph.compile()
