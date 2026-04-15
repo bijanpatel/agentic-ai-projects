@@ -214,10 +214,19 @@ def merge_results_node(state: dict) -> dict:
 
 def news_to_market_node(state: dict) -> dict:
     """
-    Handoff node: after news synthesis, add market analysis context.
+    Handoff node: after news synthesis, add market analysis context
+    only if a specific ticker can be extracted.
     """
     primary = state.get("primary_result")
-    ticker = extract_ticker_hybrid(state["user_query"])
+
+    ticker = extract_ticker_hybrid(state["user_query"], default_ticker=None)
+
+    # If no ticker is available, skip the handoff safely and keep the news result.
+    if not ticker:
+        state["result"] = primary
+        state["handoff_to"] = None
+        return state
+
     secondary = ask_market_question(state["user_query"], ticker=ticker)
 
     merged_answer = (
@@ -248,6 +257,7 @@ def news_to_market_node(state: dict) -> dict:
         "handoff_used": True,
         "primary_agent": "news_synthesizer",
         "secondary_agent": "market_analysis",
+        "ticker_used": ticker,
     }
     return state
 

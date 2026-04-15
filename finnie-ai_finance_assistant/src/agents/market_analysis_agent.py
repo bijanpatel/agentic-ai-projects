@@ -46,6 +46,18 @@ def ask_market_question(user_query: str, ticker: str) -> dict:
     """
     config = load_config()
 
+    if not ticker:
+        return {
+            "question": user_query,
+            "answer": "I can help with market analysis, but I need a specific stock or ETF ticker such as AAPL, MSFT, or VOO.",
+            "market_data": {},
+            "sources": [],
+            "agent": "market_analysis",
+            "used_rag": False,
+            "used_api": False,
+            "fallback_used": True,
+        }
+
     snapshot_json = get_market_snapshot_tool.invoke({"ticker": ticker})
     history_json = get_price_history_tool.invoke({
         "ticker": ticker,

@@ -145,22 +145,10 @@ def extract_ticker_hybrid(user_query: str, default_ticker: str | None = None) ->
     Steps:
         1. Try alias/dictionary lookup
         2. Try LLM-based extraction
-        3. Fall back to default ticker
-
-    Parameters:
-        user_query (str):
-            Raw user query.
-
-        default_ticker (str):
-            Safe fallback ticker for demo resilience.
+        3. Fall back to default ticker if provided
 
     Returns:
-        str:
-            Final ticker symbol to use.
-
-    Why this function matters:
-        It gives us a stronger extraction strategy than manual string scanning
-        while still staying simple enough for the project timeline.
+        str | None
     """
     alias_ticker = extract_ticker_from_alias_map(user_query)
     if alias_ticker and looks_like_valid_ticker(alias_ticker):
