@@ -44,14 +44,20 @@ html, body, [class*="css"] {
     min-width: 230px !important;
     max-width: 230px !important;
 }
-[data-testid="stSidebar"] > div:first-child { padding: 0 !important; }
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 8px !important;
+    padding-bottom: 0 !important;
+}
 
 /* Brand block */
 .brand-block {
-    display: flex; align-items: center; gap: 10px;
-    padding: 20px 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px 10px;
     border-bottom: 0.5px solid #e5e7eb;
-    margin-bottom: 12px;
+    margin-top: 28px;
+    margin-bottom: 6px;
 }
 .brand-icon {
     width: 34px; height: 34px; border-radius: 9px;
@@ -64,9 +70,12 @@ html, body, [class*="css"] {
 
 /* Nav label */
 .nav-label {
-    font-size: 10px; font-weight: 600; color: #b0b7c3;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    margin: 4px 0 6px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #b0b7c3;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 2px 0 4px 14px;
 }
 
 /* Radio → nav-item style */
@@ -256,10 +265,10 @@ def render_topbar(title: str):
 
 def render_welcome():
     st.markdown("""
-    <div class="welcome-wrap">
-        <div class="welcome-icon-wrap">💰</div>
-        <div class="welcome-title">How can I help you today?</div>
-        <div class="welcome-sub">Ask about finance concepts, taxes, investing, or markets</div>
+    <div class="welcome-wrap" style="padding: 20px 16px 6px;">
+        <div class="welcome-icon-wrap" style="width:42px;height:42px;margin:0 auto 10px;">💰</div>
+        <div class="welcome-title" style="font-size:15px;">How can I help you today?</div>
+        <div class="welcome-sub" style="font-size:12px;">Finance concepts, taxes, planning, portfolios, and markets</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -322,13 +331,26 @@ def render_response_details_icon(metadata: dict):
 # ─── Tab views ───────────────────────────────────────────────────────────────
 
 def chat_tab():
-    render_topbar("AI Finance Assistant")
+    """
+    Render the main assistant chat view with improved UX.
+
+    Improvements:
+    - question appears first
+    - assistant response loads after that
+    - loading state is visible while workflow runs
+    """
 
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
 
+    if "pending_user_query" not in st.session_state:
+        st.session_state.pending_user_query = None
+
+    if "is_processing" not in st.session_state:
+        st.session_state.is_processing = False
+
     starter_prompt = None
-    if not st.session_state.chat_messages:
+    if not st.session_state.chat_messages and not st.session_state.pending_user_query:
         render_welcome()
         starter_prompt = render_starter_prompts()
         render_date_divider()
@@ -345,108 +367,383 @@ def chat_tab():
             else:
                 st.write(msg["content"])
 
+    # If a message is pending, show a loading placeholder and process it
+    if st.session_state.pending_user_query and st.session_state.is_processing:
+        with st.chat_message("assistant"):
+            progress_placeholder = st.empty()
+            status_placeholder = st.empty()
+
+            status_placeholder.caption("Thinking…")
+            progress_bar = progress_placeholder.progress(15)
+
+            progress_bar.progress(35)
+
+            app = build_workflow()
+            result = app.invoke({
+                "user_query": st.session_state.pending_user_query,
+                "messages": st.session_state.chat_messages,
+            })
+
+            progress_bar.progress(70)
+
+            routed_agent = result.get("routed_agent", "unknown")
+            agent_result = result.get("result", {})
+
+            answer = agent_result.get("answer", "No answer returned.")
+            sources = agent_result.get("sources", [])
+
+            assistant_metadata = {
+                "routed_agent": routed_agent,
+                "used_rag": agent_result.get("used_rag", False),
+                "used_api": agent_result.get("used_api", False),
+                "fallback_used": agent_result.get("fallback_used", False),
+                "needs_followup": result.get("needs_followup", False),
+                "followup_type": result.get("followup_type", ""),
+                "sources": sources,
+            }
+
+            progress_bar.progress(100)
+
+            # Save assistant message
+            st.session_state.chat_messages.append({
+                "role": "assistant",
+                "content": answer,
+                "metadata": assistant_metadata,
+            })
+
+            # Log interaction
+            log_interaction({
+                "user_query": st.session_state.pending_user_query,
+                "agent": agent_result.get("agent", routed_agent),
+                "used_rag": agent_result.get("used_rag", False),
+                "used_api": agent_result.get("used_api", False),
+                "fallback_used": agent_result.get("fallback_used", False),
+                "retrieved_doc_count": agent_result.get("retrieved_doc_count", 0),
+                "needs_followup": result.get("needs_followup", False),
+                "followup_type": result.get("followup_type", ""),
+            })
+
+            # Clear loading state
+            st.session_state.pending_user_query = None
+            st.session_state.is_processing = False
+
+            status_placeholder.empty()
+            progress_placeholder.empty()
+
+        st.rerun()
+
     # Chat input
     user_query = st.chat_input(
         "Ask about finance, tax, planning, portfolios, markets, or news"
     )
+
+    final_query = user_query or starter_prompt
+
+    if final_query and not st.session_state.is_processing:
+        # Show user message immediately
+        st.session_state.chat_messages.append({
+            "role": "user",
+            "content": final_query,
+        })
+
+        # Mark assistant work as pending
+        st.session_state.pending_user_query = final_query
+        st.session_state.is_processing = True
+
+        st.rerun()
+
     st.markdown(
         '<div class="input-hint">For educational purposes only — not financial advice</div>',
         unsafe_allow_html=True,
     )
 
-    final_query = user_query or starter_prompt
-    if not final_query:
-        return
 
-    st.session_state.chat_messages.append({"role": "user", "content": final_query})
+def normalize_uploaded_portfolio_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalize uploaded portfolio columns and values.
 
-    app    = build_workflow()
-    result = app.invoke({"user_query": final_query, "messages": st.session_state.chat_messages})
+    Required columns:
+        - ticker
+        - quantity
 
-    routed_agent = result.get("routed_agent", "unknown")
-    agent_result = result.get("result", {})
-    answer       = agent_result.get("answer", "No answer returned.")
+    Optional columns:
+        - cost_basis
+        - sector
+        - asset_type
+    """
+    df = df.copy()
+    df.columns = [col.strip().lower() for col in df.columns]
 
-    metadata = {
-        "routed_agent":        routed_agent,
-        "used_rag":            agent_result.get("used_rag", False),
-        "used_api":            agent_result.get("used_api", False),
-        "fallback_used":       agent_result.get("fallback_used", False),
-        "needs_followup":      result.get("needs_followup", False),
-        "followup_type":       result.get("followup_type", ""),
-        "sources":             agent_result.get("sources", []),
+    required_cols = {"ticker", "quantity"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"Missing required columns: {', '.join(sorted(missing))}. "
+            f"Required columns are: ticker, quantity."
+        )
+
+    df["ticker"] = df["ticker"].astype(str).str.upper().str.strip()
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+
+    if "cost_basis" in df.columns:
+        df["cost_basis"] = pd.to_numeric(df["cost_basis"], errors="coerce")
+    else:
+        df["cost_basis"] = None
+
+    if "sector" not in df.columns:
+        df["sector"] = "Unknown"
+
+    if "asset_type" not in df.columns:
+        df["asset_type"] = "Unknown"
+
+    df = df.dropna(subset=["ticker", "quantity"])
+
+    if df.empty:
+        raise ValueError("The uploaded portfolio file does not contain valid ticker/quantity rows.")
+
+    return df
+
+
+def analyze_uploaded_portfolio(df: pd.DataFrame) -> dict:
+    """
+    Analyze an uploaded portfolio DataFrame.
+
+    Expected normalized columns:
+        - ticker
+        - quantity
+        - cost_basis
+        - sector
+        - asset_type
+
+    Returns:
+        dict containing:
+            - answer
+            - portfolio_metrics
+    """
+    holdings = []
+    total_value = 0.0
+    total_cost_basis = 0.0
+    has_cost_basis = df["cost_basis"].notna().any()
+
+    for _, row in df.iterrows():
+        ticker = row["ticker"]
+        quantity = float(row["quantity"])
+
+        market_result = ask_market_question(
+            user_query=f"What is happening with {ticker} right now?",
+            ticker=ticker
+        )
+
+        market_data = market_result.get("market_data", {})
+        current_price = market_data.get("current_price")
+
+        if current_price is None:
+            current_price = 0.0
+
+        holding_value = float(current_price) * quantity
+        cost_basis = float(row["cost_basis"]) if pd.notna(row["cost_basis"]) else 0.0
+        unrealized_gain_loss = holding_value - cost_basis if has_cost_basis else None
+
+        holdings.append({
+            "ticker": ticker,
+            "quantity": quantity,
+            "current_price": float(current_price),
+            "holding_value": holding_value,
+            "cost_basis": cost_basis if has_cost_basis else None,
+            "unrealized_gain_loss": unrealized_gain_loss,
+            "sector": row.get("sector", "Unknown"),
+            "asset_type": row.get("asset_type", "Unknown"),
+        })
+
+        total_value += holding_value
+        if has_cost_basis:
+            total_cost_basis += cost_basis
+
+    # Allocation %
+    for h in holdings:
+        h["allocation_pct"] = (h["holding_value"] / total_value * 100) if total_value > 0 else 0.0
+
+    # Sector allocation
+    sector_totals = {}
+    for h in holdings:
+        sector = h["sector"] or "Unknown"
+        sector_totals[sector] = sector_totals.get(sector, 0.0) + h["holding_value"]
+
+    sector_allocation = [
+        {
+            "sector": sector,
+            "value": value,
+            "allocation_pct": (value / total_value * 100) if total_value > 0 else 0.0,
+        }
+        for sector, value in sector_totals.items()
+    ]
+
+    # Asset type allocation
+    asset_type_totals = {}
+    for h in holdings:
+        asset_type = h["asset_type"] or "Unknown"
+        asset_type_totals[asset_type] = asset_type_totals.get(asset_type, 0.0) + h["holding_value"]
+
+    asset_type_allocation = [
+        {
+            "asset_type": asset_type,
+            "value": value,
+            "allocation_pct": (value / total_value * 100) if total_value > 0 else 0.0,
+        }
+        for asset_type, value in asset_type_totals.items()
+    ]
+
+    unrealized_gain_loss_total = (total_value - total_cost_basis) if has_cost_basis else None
+
+    answer = (
+        f"This uploaded portfolio contains {len(holdings)} holdings with an estimated total value "
+        f"of ${total_value:,.2f}. "
+    )
+
+    if has_cost_basis:
+        answer += (
+            f"Based on the provided cost basis, the portfolio has an estimated unrealized gain/loss "
+            f"of ${unrealized_gain_loss_total:,.2f}. "
+        )
+
+    answer += (
+        "Use the allocation and sector views below to understand diversification and concentration."
+    )
+
+    return {
+        "answer": answer,
+        "portfolio_metrics": {
+            "total_value": total_value,
+            "total_cost_basis": total_cost_basis if has_cost_basis else 0.0,
+            "unrealized_gain_loss": unrealized_gain_loss_total if has_cost_basis else 0.0,
+            "holdings": holdings,
+            "sector_allocation": sector_allocation,
+            "asset_type_allocation": asset_type_allocation,
+        }
     }
-
-    st.session_state.chat_messages.append({
-        "role": "assistant", "content": answer, "metadata": metadata,
-    })
-
-    log_interaction({
-        "user_query":          final_query,
-        "agent":               agent_result.get("agent", routed_agent),
-        "used_rag":            agent_result.get("used_rag", False),
-        "used_api":            agent_result.get("used_api", False),
-        "fallback_used":       agent_result.get("fallback_used", False),
-        "retrieved_doc_count": agent_result.get("retrieved_doc_count", 0),
-        "needs_followup":      result.get("needs_followup", False),
-        "followup_type":       result.get("followup_type", ""),
-    })
-
-    st.rerun()
 
 
 def portfolio_tab():
-    render_topbar("Portfolio Explorer")
-    st.markdown("""
-    <div style="padding: 20px 24px 0;">
-        <div class="section-title">Portfolio Explorer</div>
-        <div class="section-sub">Choose a sample portfolio and review a beginner-friendly explanation.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    """
+    Render the Portfolio Explorer view.
 
-    df = load_portfolio_data()
-    portfolio_options = (
-        df[["portfolio_id", "profile_name"]]
-        .drop_duplicates()
-        .sort_values("portfolio_id")
-    )
-    portfolio_map = {
-        f"{row['portfolio_id']} - {row['profile_name']}": row["portfolio_id"]
-        for _, row in portfolio_options.iterrows()
-    }
+    Supports:
+    - Sample portfolio analysis
+    - Uploaded CSV portfolio analysis
+    """
+    st.subheader("Portfolio Explorer")
+    st.caption("Choose a sample portfolio or upload your own portfolio CSV.")
 
-    selected_label = st.selectbox(
-        "Choose a portfolio", options=list(portfolio_map.keys()), key="portfolio_select"
+    mode = st.radio(
+        "Portfolio input mode",
+        options=["Sample Portfolio", "Upload CSV"],
+        horizontal=True,
     )
 
-    if st.button("Analyze Portfolio", key="portfolio_submit"):
-        portfolio_id = portfolio_map[selected_label]
-        with st.spinner("Analyzing portfolio…"):
-            result = ask_portfolio_question(
-                user_query="Analyze this portfolio for a beginner investor.",
-                portfolio_id=portfolio_id,
-            )
+    if mode == "Sample Portfolio":
+        df = load_portfolio_data()
 
-        st.markdown("#### Portfolio explanation")
-        st.write(result["answer"])
+        portfolio_options = (
+            df[["portfolio_id", "profile_name"]]
+            .drop_duplicates()
+            .sort_values("portfolio_id")
+        )
 
-        metrics = result["portfolio_metrics"]
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total value",          f"${float(metrics['total_value']):,.2f}")
-        col2.metric("Total cost basis",     f"${float(metrics['total_cost_basis']):,.2f}")
-        col3.metric("Unrealized gain/loss", f"${float(metrics['unrealized_gain_loss']):,.2f}")
+        portfolio_map = {
+            f"{row['portfolio_id']} - {row['profile_name']}": row["portfolio_id"]
+            for _, row in portfolio_options.iterrows()
+        }
 
-        st.markdown("#### Allocation by holding")
-        st.plotly_chart(portfolio_allocation_chart(metrics["holdings"]),
-                        use_container_width=True)
+        selected_label = st.selectbox(
+            "Choose a sample portfolio",
+            options=list(portfolio_map.keys()),
+            key="portfolio_select",
+        )
 
-        st.markdown("#### Sector allocation")
-        st.plotly_chart(sector_allocation_chart(metrics["sector_allocation"]),
-                        use_container_width=True)
+        if st.button("Analyze Sample Portfolio", key="portfolio_submit"):
+            portfolio_id = portfolio_map[selected_label]
 
-        st.markdown("#### Holdings table")
-        st.dataframe(pd.DataFrame(metrics["holdings"]), use_container_width=True)
+            with st.spinner("Analyzing sample portfolio..."):
+                result = ask_portfolio_question(
+                    user_query="Analyze this portfolio for a beginner investor.",
+                    portfolio_id=portfolio_id,
+                )
 
+            st.markdown("### Portfolio Explanation")
+            st.write(result["answer"])
+
+            metrics = result["portfolio_metrics"]
+
+            total_value = float(metrics["total_value"])
+            total_cost_basis = float(metrics["total_cost_basis"])
+            unrealized_gain_loss = float(metrics["unrealized_gain_loss"])
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total Value", f"${total_value:,.2f}")
+            col2.metric("Total Cost Basis", f"${total_cost_basis:,.2f}")
+            col3.metric("Unrealized Gain/Loss", f"${unrealized_gain_loss:,.2f}")
+
+            st.markdown("### Allocation by Holding")
+            fig1 = portfolio_allocation_chart(metrics["holdings"])
+            st.plotly_chart(fig1, use_container_width=True)
+
+            st.markdown("### Sector Allocation")
+            fig2 = sector_allocation_chart(metrics["sector_allocation"])
+            st.plotly_chart(fig2, use_container_width=True)
+
+            st.markdown("### Holdings Table")
+            holdings_df = pd.DataFrame(metrics["holdings"])
+            st.dataframe(holdings_df, use_container_width=True)
+
+    else:
+        uploaded_file = st.file_uploader(
+            "Upload portfolio CSV",
+            type=["csv"],
+            help="Required columns: ticker, quantity. Optional: cost_basis, sector, asset_type"
+        )
+
+        st.caption("Example columns: ticker, quantity, cost_basis, sector, asset_type")
+
+        if uploaded_file is not None:
+            try:
+                uploaded_df = pd.read_csv(uploaded_file)
+                normalized_df = normalize_uploaded_portfolio_df(uploaded_df)
+
+                st.markdown("### Uploaded Portfolio Preview")
+                st.dataframe(normalized_df, use_container_width=True)
+
+                if st.button("Analyze Uploaded Portfolio", key="uploaded_portfolio_submit"):
+                    with st.spinner("Analyzing uploaded portfolio..."):
+                        result = analyze_uploaded_portfolio(normalized_df)
+
+                    st.markdown("### Portfolio Explanation")
+                    st.write(result["answer"])
+
+                    metrics = result["portfolio_metrics"]
+
+                    total_value = float(metrics["total_value"])
+                    total_cost_basis = float(metrics["total_cost_basis"])
+                    unrealized_gain_loss = float(metrics["unrealized_gain_loss"])
+
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Total Value", f"${total_value:,.2f}")
+                    col2.metric("Total Cost Basis", f"${total_cost_basis:,.2f}")
+                    col3.metric("Unrealized Gain/Loss", f"${unrealized_gain_loss:,.2f}")
+
+                    st.markdown("### Allocation by Holding")
+                    fig1 = portfolio_allocation_chart(metrics["holdings"])
+                    st.plotly_chart(fig1, use_container_width=True)
+
+                    st.markdown("### Sector Allocation")
+                    fig2 = sector_allocation_chart(metrics["sector_allocation"])
+                    st.plotly_chart(fig2, use_container_width=True)
+
+                    st.markdown("### Holdings Table")
+                    holdings_df = pd.DataFrame(metrics["holdings"])
+                    st.dataframe(holdings_df, use_container_width=True)
+
+            except Exception as e:
+                st.error(f"Could not process the uploaded file: {e}")
 
 def market_tab():
     render_topbar("Market Explorer")
@@ -515,12 +812,12 @@ def main():
 
         selected_tool = st.radio(
             label="Tool",
-            options=["Assistant", "Portfolio Explorer", "Market Explorer"],
+            options=["🗨  Assistant", "📊  Portfolio Explorer", "📈  Market Explorer"],
             index=0,
             label_visibility="collapsed",
         )
 
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
         st.markdown("""
         <div class="disclaimer">
@@ -529,11 +826,12 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-
         if "Assistant" in selected_tool:
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
             if st.button("Clear chat", use_container_width=True):
                 st.session_state.chat_messages = []
+                st.session_state.pending_user_query = None
+                st.session_state.is_processing = False
                 st.rerun()
 
     # ── Main content ─────────────────────────────────────────────────────────
