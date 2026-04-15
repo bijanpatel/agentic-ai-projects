@@ -4,39 +4,42 @@
     "title": "Stocks end mixed as investors digest inflation data",
     "source": "Sample Finance News Feed",
     "published_at": "2026-04-06",
-    "category": "markets",
+    "category": "inflation",
     "summary": "Major U.S. indexes ended mixed after investors reviewed new inflation data and debated what it could mean for interest rates and corporate earnings.",
     "key_points": [
-      "Inflation data may affect central bank policy expectations.",
-      "Markets reacted unevenly across sectors.",
-      "Investors remain cautious about future rate decisions."
-    ]
+      "Inflation data can affect expectations for future interest rates.",
+      "Different sectors reacted differently to the report.",
+      "Investors remain cautious about whether inflation is cooling enough."
+    ],
+    "why_it_matters": "Inflation can influence both stock valuations and bond yields, so it often shapes market sentiment."
   },
   {
     "news_id": "n2",
     "title": "Tech shares lead gains after strong earnings outlook",
     "source": "Sample Finance News Feed",
     "published_at": "2026-04-06",
-    "category": "equities",
-    "summary": "Technology companies led market gains after several firms gave stronger-than-expected earnings outlooks, boosting investor confidence in the sector.",
+    "category": "earnings",
+    "summary": "Technology shares outperformed after several companies issued stronger-than-expected earnings outlooks, boosting investor confidence in the sector.",
     "key_points": [
-      "Positive guidance improved sentiment toward technology stocks.",
-      "Earnings expectations remain an important market driver.",
-      "Sector concentration risk may still matter for investors."
-    ]
+      "Earnings guidance improved sentiment toward technology stocks.",
+      "Investors often pay close attention to future growth expectations.",
+      "Strong performance in one sector can influence the broader market."
+    ],
+    "why_it_matters": "Earnings expectations are a major driver of stock prices, especially in growth-focused sectors like technology."
   },
   {
     "news_id": "n3",
-    "title": "Bond yields rise as markets reassess rate path",
+    "title": "Bond yields rise as markets reassess the rate path",
     "source": "Sample Finance News Feed",
     "published_at": "2026-04-05",
     "category": "fixed_income",
-    "summary": "Government bond yields moved higher as markets reassessed the likely path of interest rates in light of new economic data.",
+    "summary": "Government bond yields moved higher as investors reassessed the likely path of interest rates in light of fresh economic data.",
     "key_points": [
-      "Higher yields can affect bond prices.",
-      "Interest rate expectations often influence both stocks and bonds.",
-      "Fixed-income investors monitor rate sensitivity closely."
-    ]
+      "When yields rise, bond prices often fall.",
+      "Rate expectations can affect both bonds and stocks.",
+      "Fixed-income investors are especially sensitive to rate changes."
+    ],
+    "why_it_matters": "Bond market moves can influence borrowing costs, stock valuations, and portfolio risk balance."
   },
   {
     "news_id": "n4",
@@ -46,9 +49,38 @@
     "category": "markets",
     "summary": "Some investors shifted toward defensive sectors such as healthcare and consumer staples as uncertainty around growth and inflation remained elevated.",
     "key_points": [
-      "Defensive sectors are sometimes favored during uncertainty.",
-      "Rotation between sectors can change portfolio behavior.",
-      "Diversification can help reduce concentration in one market theme."
-    ]
+      "Defensive sectors are often seen as relatively resilient during uncertainty.",
+      "Sector rotation can change market leadership quickly.",
+      "Diversified investors may notice different parts of the portfolio behaving differently."
+    ],
+    "why_it_matters": "Sector rotation shows that not all parts of the market respond the same way to uncertainty."
+  },
+  {
+    "news_id": "n5",
+    "title": "Retail sales data points to resilient consumer spending",
+    "source": "Sample Finance News Feed",
+    "published_at": "2026-04-04",
+    "category": "markets",
+    "summary": "New retail sales data suggested that consumer spending remains resilient, supporting optimism about economic growth.",
+    "key_points": [
+      "Consumer spending is a major part of economic activity.",
+      "Stronger spending can support company revenues in some sectors.",
+      "Markets may interpret strong data differently depending on inflation concerns."
+    ],
+    "why_it_matters": "Economic data can affect how investors view future growth, inflation, and interest rate decisions."
+  },
+  {
+    "news_id": "n6",
+    "title": "Rate-cut expectations shift after stronger labor market report",
+    "source": "Sample Finance News Feed",
+    "published_at": "2026-04-04",
+    "category": "rates",
+    "summary": "Markets adjusted expectations for future rate cuts after a stronger-than-expected labor market report suggested continued economic resilience.",
+    "key_points": [
+      "A strong labor market can reduce pressure for near-term rate cuts.",
+      "Rate expectations influence stock and bond markets.",
+      "Economic strength can be interpreted as both positive and inflationary."
+    ],
+    "why_it_matters": "Interest rate expectations are one of the biggest forces shaping financial market behavior."
   }
 ]

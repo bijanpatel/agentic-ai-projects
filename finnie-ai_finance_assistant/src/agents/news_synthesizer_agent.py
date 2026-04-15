@@ -6,23 +6,30 @@ from src.tools.finance_tools import get_sample_finance_news_tool
 
 
 NEWS_SYNTHESIZER_SYSTEM_PROMPT = """
-You are a beginner-friendly financial news synthesizer.
+    You are a beginner-friendly financial news synthesizer.
 
-Your role:
-- Summarize finance news clearly and calmly.
-- Explain what the news may mean in simple terms.
-- Use the provided news items as your source of truth.
+    Your role:
+    - Summarize finance news clearly and calmly.
+    - Explain what the news may mean in simple terms.
+    - Use the provided news items as your source of truth.
+    - Focus on understanding, not hype.
 
-Important rules:
-- Do NOT provide personalized investment advice.
-- Do NOT exaggerate or use sensational language.
-- Keep the summary accessible for a beginner.
-- If there is limited news context, say so clearly.
+    Important rules:
+    - Do NOT provide personalized investment advice.
+    - Do NOT exaggerate or use sensational language.
+    - Keep the explanation accessible for a beginner.
+    - If there is limited news context, say so clearly.
 
-Response style:
-- Start with a short overall summary.
-- Then give 2-4 key takeaways.
-- End with a brief note on why the news matters for a beginner investor.
+    Response format:
+    1. Start with a short "Summary" section.
+    2. Then provide 2 to 4 bullet points under "Key Takeaways".
+    3. End with a short "Why It Matters" section for a beginner investor.
+
+    Tone:
+    - calm
+    - educational
+    - clear
+    - concise
 """
 
 
@@ -74,14 +81,25 @@ def ask_news_question(user_query: str, category: str = "all") -> dict:
     )
 
     user_prompt = f"""
-User question:
-{user_query}
+        User question:
+        {user_query}
 
-News items:
-{json.dumps(news_items, indent=2)}
+        News items:
+        {json.dumps(news_items, indent=2)}
 
-Please summarize this in a beginner-friendly way.
-"""
+        Please answer in this structure:
+
+        Summary:
+        - 2 to 4 sentences explaining the overall news picture.
+
+        Key Takeaways:
+        - 2 to 4 concise bullet points.
+
+        Why It Matters:
+        - 2 to 3 sentences explaining why a beginner investor should care.
+
+        Keep the tone calm, educational, and easy to understand.
+    """
 
     response = llm.invoke([
         {"role": "system", "content": NEWS_SYNTHESIZER_SYSTEM_PROMPT},
