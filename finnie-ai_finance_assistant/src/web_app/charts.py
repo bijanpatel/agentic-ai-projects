@@ -24,26 +24,44 @@ def portfolio_allocation_chart(holdings: list):
     return fig
 
 
-def sector_allocation_chart(sector_allocation: dict):
+def sector_allocation_chart(sector_allocation):
     """
-    Create a bar chart for sector allocation.
+    Create a sector allocation chart.
 
-    Parameters:
-        sector_allocation (dict):
-            Dictionary of sector -> value.
-
-    Returns:
-        plotly.graph_objs._figure.Figure:
-            Bar chart figure.
+    Supports either:
+    - dict format:
+        {"Technology": 4200, "Healthcare": 1800}
+    - list-of-dicts format:
+        [
+            {"sector": "Technology", "value": 4200, "allocation_pct": 55.0},
+            {"sector": "Healthcare", "value": 1800, "allocation_pct": 23.0},
+        ]
     """
-    df = pd.DataFrame(
-        list(sector_allocation.items()),
-        columns=["sector", "holding_value"]
-    )
-    fig = px.bar(
+    import pandas as pd
+    import plotly.express as px
+
+    if isinstance(sector_allocation, dict):
+        df = pd.DataFrame(
+            [
+                {"sector": sector, "value": value}
+                for sector, value in sector_allocation.items()
+            ]
+        )
+    elif isinstance(sector_allocation, list):
+        df = pd.DataFrame(sector_allocation)
+
+        # Normalize expected column names if needed
+        if "sector" not in df.columns or "value" not in df.columns:
+            raise ValueError(
+                "Sector allocation list must contain 'sector' and 'value' fields."
+            )
+    else:
+        raise ValueError("sector_allocation must be either a dict or a list of dicts.")
+
+    fig = px.pie(
         df,
-        x="sector",
-        y="holding_value",
+        names="sector",
+        values="value",
         title="Sector Allocation"
     )
     return fig
