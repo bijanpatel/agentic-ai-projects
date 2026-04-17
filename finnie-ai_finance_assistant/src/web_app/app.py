@@ -303,17 +303,26 @@ def render_date_divider(label: str = "Today"):
 def render_response_details_icon(metadata: dict):
     if not metadata:
         return
+
     lines = [
-        f"Agent: {metadata.get('routed_agent', 'unknown')}",
+        f"Routed Agent: {metadata.get('routed_agent', 'unknown')}",
+        f"Final Agent: {metadata.get('final_agent', metadata.get('routed_agent', 'unknown'))}",
+    ]
+
+    if metadata.get("handoff_used"):
+        lines.append(f"Primary Agent: {metadata.get('primary_agent', '')}")
+        lines.append(f"Secondary Agent: {metadata.get('secondary_agent', '')}")
+
+    lines += [
         f"Used RAG: {metadata.get('used_rag', False)}",
         f"Used API: {metadata.get('used_api', False)}",
         f"Fallback: {metadata.get('fallback_used', False)}",
     ]
+
     if metadata.get("needs_followup"):
-        lines += [
-            f"Needs Follow-up: {metadata['needs_followup']}",
-            f"Follow-up Type: {metadata.get('followup_type', '')}",
-        ]
+        lines.append(f"Needs Follow-up: {metadata.get('needs_followup')}")
+        lines.append(f"Follow-up Type: {metadata.get('followup_type', '')}")
+
     for src in metadata.get("sources", [])[:4]:
         lines.append(f"- {src['title']} ({src['source']})")
 
@@ -321,6 +330,7 @@ def render_response_details_icon(metadata: dict):
         l.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
         for l in lines
     )
+
     st.markdown(
         f'<div style="display:flex;justify-content:flex-end;margin-top:0.1rem;">'
         f'<span class="info-icon" title="{tooltip}">ⓘ</span></div>',
@@ -360,10 +370,43 @@ def chat_tab():
         with st.chat_message(msg["role"]):
             if msg["role"] == "assistant":
                 text_col, icon_col = st.columns([24, 1], vertical_alignment="top")
+
                 with text_col:
                     st.write(msg["content"])
+
                 with icon_col:
                     render_response_details_icon(msg.get("metadata", {}))
+
+                structured_result = msg.get("structured_result", {})
+                portfolio_metrics = structured_result.get("portfolio_metrics")
+
+                if portfolio_metrics:
+                    total_value = float(portfolio_metrics.get("total_value", 0.0))
+                    total_cost_basis = float(portfolio_metrics.get("total_cost_basis", 0.0))
+                    unrealized_gain_loss = float(portfolio_metrics.get("unrealized_gain_loss", 0.0))
+
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Total Value", f"${total_value:,.2f}")
+                    col2.metric("Total Cost Basis", f"${total_cost_basis:,.2f}")
+                    col3.metric("Unrealized Gain/Loss", f"${unrealized_gain_loss:,.2f}")
+
+                    holdings = portfolio_metrics.get("holdings", [])
+                    sector_allocation = portfolio_metrics.get("sector_allocation", [])
+
+                    if holdings:
+                        st.markdown("**Allocation by Holding**")
+                        fig1 = portfolio_allocation_chart(holdings)
+                        st.plotly_chart(fig1, use_container_width=True)
+
+                        st.markdown("**Holdings Table**")
+                        holdings_df = pd.DataFrame(holdings)
+                        st.dataframe(holdings_df, use_container_width=True)
+
+                    if sector_allocation:
+                        st.markdown("**Sector Allocation**")
+                        fig2 = sector_allocation_chart(sector_allocation)
+                        st.plotly_chart(fig2, use_container_width=True)
+
             else:
                 st.write(msg["content"])
 
@@ -394,6 +437,10 @@ def chat_tab():
 
             assistant_metadata = {
                 "routed_agent": routed_agent,
+                "final_agent": agent_result.get("agent", routed_agent),
+                "primary_agent": agent_result.get("primary_agent", routed_agent),
+                "secondary_agent": agent_result.get("secondary_agent", ""),
+                "handoff_used": agent_result.get("handoff_used", False),
                 "used_rag": agent_result.get("used_rag", False),
                 "used_api": agent_result.get("used_api", False),
                 "fallback_used": agent_result.get("fallback_used", False),
@@ -409,6 +456,10 @@ def chat_tab():
                 "role": "assistant",
                 "content": answer,
                 "metadata": assistant_metadata,
+                "structured_result": {
+                    "portfolio_metrics": agent_result.get("portfolio_metrics"),
+                    "market_data": agent_result.get("market_data"),
+                },
             })
 
             # Log interaction

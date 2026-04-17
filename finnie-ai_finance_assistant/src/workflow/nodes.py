@@ -9,6 +9,11 @@ from src.workflow.handoff import detect_handoff_need
 from src.agents.ticker_extractor_agent import extract_ticker_hybrid
 from src.workflow.guardrails import detect_guardrail_response
 from src.agents.portfolio_intake_agent import handle_portfolio_intake
+from src.agents.portfolio_analysis_agent import (
+    ask_portfolio_question,
+    analyze_chat_holdings_portfolio,
+)
+
 
 
 def extract_ticker_from_query(user_query: str) -> str:
@@ -127,34 +132,54 @@ def portfolio_analysis_node(state: dict) -> dict:
     """
     Portfolio Analysis node.
 
-    If portfolio holdings are not yet available in state, this node first
-    triggers portfolio intake behavior through chat.
+    Behavior:
+    - If the user has not provided holdings yet, ask for them.
+    - If the current user message contains holdings, capture them and
+      immediately analyze them in the same turn.
     """
     portfolio_context = state.get("portfolio_context", {})
 
-    if not portfolio_context.get("holdings"):
-        intake_result = handle_portfolio_intake(
-            state["user_query"],
-            portfolio_context=portfolio_context
-        )
+    intake_result = handle_portfolio_intake(
+        state["user_query"],
+        portfolio_context=portfolio_context
+    )
 
+    updated_context = intake_result.get("portfolio_context", {})
+    holdings = updated_context.get("holdings", [])
+
+    # Case 1: still missing holdings -> ask follow-up
+    if intake_result.get("needs_followup", False):
         state["result"] = intake_result
-        state["portfolio_context"] = intake_result.get("portfolio_context", {})
-        state["needs_followup"] = intake_result.get("needs_followup", False)
+        state["portfolio_context"] = updated_context
+        state["needs_followup"] = True
         state["followup_type"] = intake_result.get("followup_type", "")
         return state
 
-    # For now, once holdings exist, still use sample portfolio p1 as analysis placeholder.
-    # In the next refinement, this will be upgraded to analyze the user-provided holdings directly.
-    result = ask_portfolio_question(
-        user_query=state["user_query"],
-        portfolio_id="p1"
-    )
-    state["result"] = result
-    state["primary_result"] = result
-    state["handoff_to"] = detect_handoff_need(state["user_query"], "portfolio_analysis")
-    return state
+    # Case 2: holdings were captured in this turn -> analyze immediately
+    if holdings:
+        result = analyze_chat_holdings_portfolio(
+            holdings=holdings,
+            user_query=state["user_query"]
+        )
+        state["result"] = result
+        state["portfolio_context"] = updated_context
+        state["needs_followup"] = False
+        state["followup_type"] = ""
+        state["primary_result"] = result
+        state["handoff_to"] = detect_handoff_need(state["user_query"], "portfolio_analysis")
+        return state
 
+    # Safety fallback
+    state["result"] = {
+        "question": state["user_query"],
+        "answer": "I could not parse the portfolio holdings. Please try a format like: AAPL 10, VOO 5, BND 7",
+        "sources": [],
+        "agent": "portfolio_analysis",
+        "used_rag": False,
+        "used_api": False,
+        "fallback_used": True,
+    }
+    return state
 def merge_results_node(state: dict) -> dict:
     """
     Merge primary and secondary agent outputs into a single final response.
