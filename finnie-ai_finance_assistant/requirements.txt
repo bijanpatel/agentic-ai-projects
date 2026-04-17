@@ -13,3 +13,4 @@ tiktoken
 numpy
 langchain-openai
 langchain-chroma
+requests>=2.31.0

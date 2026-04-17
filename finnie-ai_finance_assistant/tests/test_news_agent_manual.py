@@ -1,24 +1,27 @@
 from src.agents.news_synthesizer_agent import ask_news_question
 
 
-def run_query(query: str, category: str = "all"):
-    result = ask_news_question(query, category=category)
-
-    print("=" * 80)
-    print("QUERY:", query)
-    print("AGENT:", result.get("agent"))
-    print("NEWS COUNT:", result.get("news_count"))
-    print("ANSWER:\n")
-    print(result.get("answer"))
-    print("\nSOURCES:")
-    for source in result.get("sources", []):
-        print(f"- {source['title']} ({source['source']})")
-
-
 def main():
-    run_query("Summarize recent market news for a beginner.")
-    run_query("Explain recent inflation-related news simply.", category="inflation")
-    run_query("What is happening in bonds recently?", category="fixed_income")
+    queries = [
+    "Latest US stock market news today",
+    "Recent inflation news affecting US markets",
+    "Latest Federal Reserve interest rate news and market reaction",
+    "Recent bond market news in the US",
+    "Latest tech earnings news affecting the stock market"
+]
+
+    for query in queries:
+        result = ask_news_question(query)
+        print("=" * 80)
+        print("QUERY:", query)
+        print("AGENT:", result.get("agent"))
+        print("USED API:", result.get("used_api"))
+        print("FALLBACK USED:", result.get("fallback_used"))
+        print("ANSWER:\n")
+        print(result.get("answer"))
+        print("\nSOURCES:")
+        for source in result.get("sources", []):
+            print(f"- {source['title']} ({source['source']})")
 
 
 if __name__ == "__main__":

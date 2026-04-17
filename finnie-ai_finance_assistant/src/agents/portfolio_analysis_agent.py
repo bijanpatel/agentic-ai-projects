@@ -4,6 +4,7 @@ from langchain_openai import ChatOpenAI
 from src.core.config import load_config
 from src.tools.finance_tools import calculate_portfolio_metrics_tool
 from src.rag.retriever import search_documents
+from src.agents.market_analysis_agent import ask_market_question
 
 
 PORTFOLIO_ANALYSIS_SYSTEM_PROMPT = """
@@ -125,3 +126,84 @@ Please highlight:
         "used_api": False,
         "fallback_used": False,
     }
+def analyze_chat_holdings_portfolio(holdings: list[dict], user_query: str) -> dict:
+    """
+    Analyze holdings captured directly from chat input.
+
+    Parameters:
+        holdings (list[dict]):
+            Example:
+            [
+                {"ticker": "AAPL", "quantity": 10},
+                {"ticker": "VOO", "quantity": 5}
+            ]
+
+        user_query (str):
+            Original user query.
+
+    Returns:
+        dict:
+            Beginner-friendly portfolio analysis result.
+    """
+    enriched_holdings = []
+    total_value = 0.0
+
+    for holding in holdings:
+        ticker = holding["ticker"]
+        quantity = float(holding["quantity"])
+
+        market_result = ask_market_question(
+            user_query=f"What is happening with {ticker} right now?",
+            ticker=ticker
+        )
+
+        market_data = market_result.get("market_data", {})
+        current_price = market_data.get("current_price", 0.0) or 0.0
+        holding_value = float(current_price) * quantity
+
+        enriched_holdings.append({
+            "ticker": ticker,
+            "quantity": quantity,
+            "current_price": float(current_price),
+            "holding_value": holding_value,
+            "sector": market_data.get("sector", "Unknown"),
+            "asset_type": market_data.get("asset_type", "Unknown"),
+        })
+
+        total_value += holding_value
+
+    for h in enriched_holdings:
+        h["allocation_pct"] = (h["holding_value"] / total_value * 100) if total_value > 0 else 0.0
+
+    sector_totals = {}
+    for h in enriched_holdings:
+        sector = h.get("sector", "Unknown")
+        sector_totals[sector] = sector_totals.get(sector, 0.0) + h["holding_value"]
+
+    sector_allocation = [
+        {"sector": sector, "value": value}
+        for sector, value in sector_totals.items()
+    ]
+
+    answer = (
+        f"I analyzed your portfolio with {len(enriched_holdings)} holdings. "
+        f"The estimated total value is ${total_value:,.2f}. "
+        f"Use the allocation breakdown to check diversification and concentration risk."
+    )
+
+    return {
+    "question": user_query,
+    "answer": answer,
+    "portfolio_metrics": {
+        "total_value": total_value,
+        "total_cost_basis": 0.0,
+        "unrealized_gain_loss": 0.0,
+        "holdings": enriched_holdings,
+        "sector_allocation": sector_allocation,
+    },
+    "sources": [],
+    "agent": "portfolio_analysis",
+    "used_rag": False,
+    "used_api": True,
+    "fallback_used": False,
+}
